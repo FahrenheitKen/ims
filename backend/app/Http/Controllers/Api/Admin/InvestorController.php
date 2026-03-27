@@ -60,18 +60,11 @@ class InvestorController extends Controller
             'tax_id' => 'nullable|string|max:50',
             'next_of_kin_name' => 'nullable|string|max:255',
             'next_of_kin_phone' => 'nullable|string|max:20',
+            'next_of_kin_relationship' => 'nullable|string|max:100',
             'bank_name' => 'nullable|string|max:255',
             'bank_account' => 'nullable|string|max:50',
             'bank_branch' => 'nullable|string|max:255',
-            'initial_amount' => 'required|numeric|min:50000',
-            'start_date' => 'nullable|date',
-            'custom_interest_rate' => 'nullable|numeric|min:0|max:100',
         ]);
-
-        $startDate = !empty($validated['start_date'])
-            ? \Carbon\Carbon::parse($validated['start_date'])
-            : now();
-        $endDate = $startDate->copy()->addYear();
 
         $investor = Investor::create([
             'investor_id' => InvestmentService::generateInvestorId(),
@@ -89,25 +82,20 @@ class InvestorController extends Controller
             'tax_id' => $validated['tax_id'] ?? null,
             'next_of_kin_name' => $validated['next_of_kin_name'] ?? null,
             'next_of_kin_phone' => $validated['next_of_kin_phone'] ?? null,
+            'next_of_kin_relationship' => $validated['next_of_kin_relationship'] ?? null,
             'bank_name' => $validated['bank_name'] ?? null,
             'bank_account' => $validated['bank_account'] ?? null,
             'bank_branch' => $validated['bank_branch'] ?? null,
             'total_invested' => 0,
             'interest_rate' => 0,
             'monthly_payout' => 0,
-            'start_date' => $startDate,
-            'end_date' => $endDate,
+            'start_date' => now(),
+            'end_date' => now()->addYear(),
             'password' => $validated['id_number'],
             'status' => 'active',
         ]);
 
-        $customRate = !empty($validated['custom_interest_rate'])
-            ? $validated['custom_interest_rate'] / 100
-            : null;
-
-        $this->investmentService->createInvestment($investor, $validated['initial_amount'], $customRate);
-
-        ActivityService::log($request->user()->id, $investor->id, 'created', "Investor created with initial investment of {$validated['initial_amount']}");
+        ActivityService::log($request->user()->id, $investor->id, 'created', 'Investor created');
 
         return response()->json($investor->fresh(), 201);
     }
@@ -149,6 +137,7 @@ class InvestorController extends Controller
             'tax_id' => 'nullable|string|max:50',
             'next_of_kin_name' => 'nullable|string|max:255',
             'next_of_kin_phone' => 'nullable|string|max:20',
+            'next_of_kin_relationship' => 'nullable|string|max:100',
             'bank_name' => 'nullable|string|max:255',
             'bank_account' => 'nullable|string|max:50',
             'bank_branch' => 'nullable|string|max:255',
@@ -203,18 +192,17 @@ class InvestorController extends Controller
             return response()->json(['message' => 'Only pending investors can be approved'], 422);
         }
 
-        // If investor self-registered with an investment amount but has no investment transaction yet, create one
-        if ($investor->total_invested > 0 && $investor->investmentTransactions()->count() === 0) {
-            $startDate = now();
-            $endDate = $startDate->copy()->addYear();
-            $investor->update([
-                'status' => 'active',
-                'start_date' => $startDate,
-                'end_date' => $endDate,
-            ]);
+        $startDate = now();
+        $endDate = $startDate->copy()->addYear();
+        $investor->update([
+            'status' => 'active',
+            'start_date' => $startDate,
+            'end_date' => $endDate,
+        ]);
+
+        // If investor self-registered with an investment amount, auto-create a contract
+        if ($investor->total_invested > 0 && $investor->contracts()->count() === 0) {
             $this->investmentService->createInvestment($investor, (float) $investor->total_invested);
-        } else {
-            $investor->update(['status' => 'active']);
         }
 
         ActivityService::log($request->user()->id, $investor->id, 'approved', 'Investor registration approved');

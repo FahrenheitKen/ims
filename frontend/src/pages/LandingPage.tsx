@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Button, InputNumber, Typography, Segmented, Drawer } from 'antd';
+import { Button, InputNumber, Typography, Segmented, Drawer, message } from 'antd';
 import {
   ArrowRightOutlined,
   CalculatorOutlined,
@@ -21,6 +21,7 @@ import {
   MenuOutlined,
 } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
+import { useSettings } from '../contexts/SettingsContext';
 
 const { Title, Text, Paragraph } = Typography;
 
@@ -57,8 +58,90 @@ const plans = [
 
 const formatKES = (n: number) => 'KES ' + n.toLocaleString('en-KE', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
 
+interface TickerItem {
+  symbol: string;
+  price: number;
+  change: number;
+  decimals: number;
+}
+
+const INITIAL_TICKERS: TickerItem[] = [
+  { symbol: 'XAU/USD', price: 3023.40, change: 0.42, decimals: 2 },
+  { symbol: 'GBP/USD', price: 1.2948, change: -0.18, decimals: 4 },
+  { symbol: 'USD/JPY', price: 149.87, change: 0.23, decimals: 2 },
+  { symbol: 'BTC/USD', price: 87420, change: 1.45, decimals: 0 },
+  { symbol: 'EUR/USD', price: 1.0825, change: -0.09, decimals: 4 },
+  { symbol: 'XAG/USD', price: 33.48, change: 0.67, decimals: 2 },
+  { symbol: 'USD/CAD', price: 1.3821, change: 0.11, decimals: 4 },
+  { symbol: 'WTI OIL', price: 71.32, change: -0.35, decimals: 2 },
+  { symbol: 'ETH/USD', price: 2045, change: 0.92, decimals: 0 },
+  { symbol: 'NAS100',  price: 21458, change: 0.88, decimals: 0 },
+  { symbol: 'SPX500',  price: 5728,  change: 0.54, decimals: 0 },
+  { symbol: 'USD/CHF', price: 0.9012, change: -0.06, decimals: 4 },
+];
+
+const MarketTicker: React.FC = () => {
+  const [tickers, setTickers] = useState<TickerItem[]>(INITIAL_TICKERS);
+
+  useEffect(() => {
+    const id = setInterval(() => {
+      setTickers(prev =>
+        prev.map(t => {
+          const delta = (Math.random() - 0.5) * 0.0015 * t.price;
+          const changeDelta = (Math.random() - 0.5) * 0.04;
+          return {
+            ...t,
+            price: Math.max(0, t.price + delta),
+            change: parseFloat((t.change + changeDelta).toFixed(2)),
+          };
+        })
+      );
+    }, 2000);
+    return () => clearInterval(id);
+  }, []);
+
+  const items = [...tickers, ...tickers]; // duplicate for seamless loop
+
+  return (
+    <div
+      style={{
+        background: '#0f172a',
+        borderBottom: '1px solid #1e293b',
+        overflow: 'hidden',
+        height: 42,
+        display: 'flex',
+        alignItems: 'center',
+        position: 'fixed',
+        top: 64,
+        left: 0,
+        right: 0,
+        zIndex: 999,
+      }}
+    >
+      {/* Fade edges */}
+      <div style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: 60, background: 'linear-gradient(to right, #0f172a, transparent)', zIndex: 2, pointerEvents: 'none' }} />
+      <div style={{ position: 'absolute', right: 0, top: 0, bottom: 0, width: 60, background: 'linear-gradient(to left, #0f172a, transparent)', zIndex: 2, pointerEvents: 'none' }} />
+
+      <div className="market-ticker-track">
+        {items.map((item, i) => (
+          <div key={i} className="market-ticker-item">
+            <span className="ticker-symbol">{item.symbol}</span>
+            <span className="ticker-price">
+              {item.price.toFixed(item.decimals)}
+            </span>
+            <span className={`ticker-change ${item.change >= 0 ? 'positive' : 'negative'}`}>
+              {item.change >= 0 ? '▲' : '▼'} {Math.abs(item.change).toFixed(2)}%
+            </span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+};
+
 const LandingPage: React.FC = () => {
   const navigate = useNavigate();
+  const { whatsappNumber } = useSettings();
   const [calcAmount, setCalcAmount] = useState<number>(100000);
   const [calcPeriod, setCalcPeriod] = useState<string>('12');
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -127,7 +210,7 @@ const LandingPage: React.FC = () => {
             <BankOutlined style={{ color: '#fff', fontSize: 18 }} />
           </div>
           <div>
-            <div style={{ fontWeight: 700, fontSize: 16, color: '#1a1a2e', lineHeight: 1.2 }}>Samawati Capital</div>
+            <div style={{ fontWeight: 700, fontSize: 16, color: '#1a1a2e', lineHeight: 1.2 }}>Zig Capital</div>
             <div style={{ fontSize: 10, color: '#64748b', letterSpacing: 1.5, textTransform: 'uppercase' }}>Investment Ltd</div>
           </div>
         </div>
@@ -174,6 +257,9 @@ const LandingPage: React.FC = () => {
         </div>
       </Drawer>
 
+      {/* Market Data Ticker */}
+      <MarketTicker />
+
       {/* Hero Section */}
       <section
         style={{
@@ -181,124 +267,42 @@ const LandingPage: React.FC = () => {
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          background: 'linear-gradient(160deg, #f8fafc 0%, #eef2ff 40%, #f0fdfa 100%)',
-          padding: '100px 40px 60px',
+          backgroundImage: 'url(/hero-bg.jpg)',
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+          backgroundRepeat: 'no-repeat',
+          padding: '130px 40px 60px',
           position: 'relative',
           overflow: 'hidden',
         }}
         className="hero-section"
       >
-        {/* Trading Candlestick Background */}
-        <svg
-          style={{
-            position: 'absolute',
-            inset: 0,
-            width: '100%',
-            height: '100%',
-            opacity: 0.07,
-            pointerEvents: 'none',
-          }}
-          viewBox="0 0 1200 700"
-          preserveAspectRatio="xMidYMid slice"
-        >
-          {/* Grid lines */}
-          {[100, 200, 300, 400, 500, 600].map((y) => (
-            <line key={`h${y}`} x1="0" y1={y} x2="1200" y2={y} stroke="#2563eb" strokeWidth="0.5" strokeDasharray="4 4" />
-          ))}
-          {[100, 200, 300, 400, 500, 600, 700, 800, 900, 1000, 1100].map((x) => (
-            <line key={`v${x}`} x1={x} y1="0" x2={x} y2="700" stroke="#2563eb" strokeWidth="0.3" strokeDasharray="4 4" />
-          ))}
-
-          {/* Candlesticks - bullish (green) and bearish (red) */}
-          {[
-            // x, open, close, high, low, bullish
-            [60, 420, 350, 330, 440, true],
-            [110, 350, 380, 320, 400, false],
-            [160, 380, 310, 290, 400, true],
-            [210, 310, 340, 280, 360, false],
-            [260, 340, 270, 250, 360, true],
-            [310, 270, 300, 240, 320, false],
-            [360, 300, 240, 220, 320, true],
-            [410, 240, 280, 210, 300, false],
-            [460, 280, 220, 200, 300, true],
-            [510, 220, 260, 190, 280, false],
-            [560, 260, 200, 180, 280, true],
-            [610, 200, 230, 170, 250, false],
-            [660, 230, 180, 160, 250, true],
-            [710, 180, 220, 150, 240, false],
-            [760, 220, 160, 140, 240, true],
-            [810, 160, 200, 130, 220, false],
-            [860, 200, 150, 120, 220, true],
-            [910, 150, 190, 110, 210, false],
-            [960, 190, 140, 100, 210, true],
-            [1010, 140, 180, 90, 200, false],
-            [1060, 180, 130, 80, 200, true],
-            [1110, 130, 170, 70, 190, false],
-          ].map(([x, open, close, high, low, bullish], i) => {
-            const top = Math.min(open as number, close as number);
-            const bottom = Math.max(open as number, close as number);
-            const color = bullish ? '#16a34a' : '#dc2626';
-            return (
-              <g key={i}>
-                {/* Wick */}
-                <line x1={x as number} y1={high as number} x2={x as number} y2={low as number} stroke={color} strokeWidth="1.5" />
-                {/* Body */}
-                <rect
-                  x={(x as number) - 12}
-                  y={top}
-                  width={24}
-                  height={Math.max(bottom - top, 3)}
-                  fill={bullish ? color : color}
-                  rx={2}
-                />
-              </g>
-            );
-          })}
-
-          {/* Moving average line flowing through the candles */}
-          <polyline
-            points="60,385 110,365 160,345 210,325 260,305 310,285 360,270 410,260 460,250 510,240 560,230 610,215 660,205 710,200 760,190 810,180 860,175 910,170 960,165 1010,160 1060,155 1110,150"
-            fill="none"
-            stroke="#2563eb"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
-
-          {/* Second MA line */}
-          <polyline
-            points="60,405 110,390 160,370 210,350 260,330 310,310 360,295 410,285 460,275 510,265 560,255 610,240 660,230 710,225 760,215 810,205 860,200 910,195 960,190 1010,185 1060,180 1110,175"
-            fill="none"
-            stroke="#6366f1"
-            strokeWidth="1.5"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeDasharray="6 3"
-          />
-        </svg>
+        {/* Dark overlay for text readability */}
+        <div style={{ position: 'absolute', inset: 0, background: 'rgba(0, 10, 40, 0.55)', pointerEvents: 'none' }} />
 
         <div style={{ maxWidth: 800, textAlign: 'center', position: 'relative', zIndex: 1 }}>
           <div
             style={{
               display: 'inline-block',
-              background: '#eef2ff',
-              color: '#4f46e5',
+              background: 'rgba(255,255,255,0.15)',
+              color: '#fff',
               padding: '6px 16px',
               borderRadius: 20,
               fontSize: 13,
               fontWeight: 600,
               marginBottom: 24,
+              backdropFilter: 'blur(4px)',
             }}
           >
             Trusted Investment Partner
           </div>
-          <Title className="hero-title">
+          <Title className="hero-title" style={{ color: '#fff' }}>
             Grow Your Wealth with{' '}
-            <span style={{ color: '#2563eb' }}>Samawati Capital</span>{' '}
+            <span style={{ color: '#60a5fa' }}>Zig Capital</span>{' '}
             Investment
           </Title>
-          <Paragraph className="hero-subtitle">
-            Earn up to <strong style={{ color: '#1a1a2e' }}>25% monthly returns</strong> on your investment.
+          <Paragraph className="hero-subtitle" style={{ color: 'rgba(255,255,255,0.85)' }}>
+            Earn up to <strong style={{ color: '#fff' }}>25% monthly returns</strong> on your investment.
             Transparent, secure, and professionally managed investment plans designed for consistent growth.
           </Paragraph>
           <div className="hero-buttons">
@@ -332,8 +336,8 @@ const LandingPage: React.FC = () => {
               { icon: <RiseOutlined />, label: 'Up to 25% Returns' },
               { icon: <TeamOutlined />, label: 'Trusted by Investors' },
             ].map((item, i) => (
-              <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, color: '#64748b' }}>
-                <span style={{ fontSize: 20, color: '#2563eb' }}>{item.icon}</span>
+              <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, color: 'rgba(255,255,255,0.9)' }}>
+                <span style={{ fontSize: 20, color: '#60a5fa' }}>{item.icon}</span>
                 <span style={{ fontSize: 14, fontWeight: 500 }}>{item.label}</span>
               </div>
             ))}
@@ -352,7 +356,7 @@ const LandingPage: React.FC = () => {
                 8 Years of Market Expertise, Working for You
               </Title>
               <Paragraph style={{ fontSize: 16, color: '#475569', lineHeight: 1.8, margin: '0 0 24px' }}>
-                At Samawati Capital Investment, we turn 8 years of market expertise into results. We trade across metals, forex, and indices using dynamic long-term and short-term strategies. Our primary focus is on maximizing your investment potential while implementing rigorous risk management to safeguard against major losses.
+                At Zig Capital Investment, we turn 8 years of market expertise into results. We trade across metals, forex, and indices using dynamic long-term and short-term strategies. Our primary focus is on maximizing your investment potential while implementing rigorous risk management to safeguard against major losses.
               </Paragraph>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
                 {[
@@ -565,15 +569,21 @@ const LandingPage: React.FC = () => {
                   </Text>
                   <InputNumber
                     value={calcAmount}
-                    onChange={(v) => setCalcAmount(v || 50000)}
-                    min={50000}
+                    onChange={(v) => setCalcAmount(v ?? 0)}
+                    min={0}
                     max={100000000}
                     step={10000}
+                    status={calcAmount < 50000 ? 'error' : undefined}
                     style={{ width: '100%' }}
                     size="large"
                     formatter={(v) => `${v}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
                     parser={(v) => v!.replace(/,/g, '') as unknown as number}
                   />
+                  {calcAmount < 50000 && (
+                    <div style={{ color: '#ff4d4f', fontSize: 13, marginTop: 6 }}>
+                      Investment cannot be less than Ksh 50,000
+                    </div>
+                  )}
                 </div>
                 <div style={{ marginBottom: 24 }}>
                   <Text style={{ fontSize: 14, fontWeight: 600, color: '#1a1a2e', display: 'block', marginBottom: 8 }}>
@@ -705,7 +715,7 @@ const LandingPage: React.FC = () => {
               What Our Investors Say
             </Title>
             <Paragraph style={{ color: '#64748b', fontSize: 16, maxWidth: 500, margin: '0 auto' }}>
-              Hear from real investors who trust Samawati Capital with their financial growth.
+              Hear from real investors who trust Zig Capital with their financial growth.
             </Paragraph>
           </div>
 
@@ -868,7 +878,7 @@ const LandingPage: React.FC = () => {
               {
                 icon: <EnvironmentOutlined style={{ fontSize: 24, color: '#2563eb' }} />,
                 title: 'Office',
-                lines: ['Samawati Capital Investment Ltd', 'Nairobi, Kenya'],
+                lines: ['Zig Capital Investment Ltd', 'Nairobi, Kenya'],
               },
             ].map((card, i) => (
               <div
@@ -917,13 +927,40 @@ const LandingPage: React.FC = () => {
         }}
       >
         <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: 13 }}>
-          All Rights Reserved by Samawati Capital Investment Ltd. Developed by Bluechange Technology.
+          All Rights Reserved by Zig Capital Investment Ltd. Developed by Bluechange Technology.
         </div>
       </footer>
 
       {/* Responsive styles */}
       <style>{`
         html, body, #root { margin: 0; padding: 0; overflow-x: hidden; }
+
+        @keyframes ticker-scroll {
+          0%   { transform: translateX(0); }
+          100% { transform: translateX(-50%); }
+        }
+        .market-ticker-track {
+          display: flex;
+          align-items: center;
+          width: max-content;
+          animation: ticker-scroll 50s linear infinite;
+        }
+        .market-ticker-track:hover { animation-play-state: paused; }
+        .market-ticker-item {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          padding: 0 20px;
+          border-right: 1px solid rgba(255,255,255,0.08);
+          white-space: nowrap;
+          font-size: 13px;
+          font-family: 'Inter', monospace, sans-serif;
+        }
+        .ticker-symbol { color: #94a3b8; font-weight: 600; font-size: 12px; letter-spacing: 0.5px; }
+        .ticker-price { color: #f1f5f9; font-weight: 700; font-variant-numeric: tabular-nums; }
+        .ticker-change { font-size: 11px; font-weight: 600; padding: 2px 6px; border-radius: 4px; }
+        .ticker-change.positive { color: #4ade80; background: rgba(74,222,128,0.12); }
+        .ticker-change.negative { color: #f87171; background: rgba(248,113,113,0.12); }
         .landing-nav {
           position: fixed; top: 0; left: 0; right: 0; z-index: 1000;
           background: rgba(255,255,255,0.95); backdrop-filter: blur(8px);
@@ -942,11 +979,11 @@ const LandingPage: React.FC = () => {
         }
         .mobile-menu-btn { display: none !important; }
         .hero-title {
-          font-size: 52px !important; font-weight: 800 !important; color: #1a1a2e !important;
+          font-size: 52px !important; font-weight: 800 !important; color: #fff !important;
           line-height: 1.15 !important; margin: 0 0 20px !important;
         }
         .hero-subtitle {
-          font-size: 18px !important; color: #64748b !important; max-width: 600px;
+          font-size: 18px !important; color: rgba(255,255,255,0.85) !important; max-width: 600px;
           margin: 0 auto 36px !important; line-height: 1.7 !important;
         }
         .hero-buttons { display: flex; gap: 16px; justify-content: center; flex-wrap: wrap; }
@@ -967,6 +1004,7 @@ const LandingPage: React.FC = () => {
           .mobile-menu-btn { display: inline-flex !important; }
 
           section { padding: 50px 16px !important; }
+          .hero-section { padding-top: 120px !important; }
 
           .hero-title { font-size: 32px !important; }
           .hero-subtitle { font-size: 15px !important; }
@@ -994,6 +1032,38 @@ const LandingPage: React.FC = () => {
           .testimonial-nav-next { right: 2px !important; }
         }
       `}</style>
+
+      {/* Floating WhatsApp Button */}
+      {whatsappNumber && (
+        <a
+          href={`https://wa.me/${whatsappNumber.replace(/[^0-9]/g, '')}`}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="whatsapp-float"
+          style={{
+            position: 'fixed',
+            bottom: 28,
+            right: 28,
+            width: 60,
+            height: 60,
+            borderRadius: '50%',
+            background: '#25d366',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            boxShadow: '0 4px 12px rgba(37,211,102,0.4)',
+            zIndex: 1000,
+            transition: 'transform 0.2s, box-shadow 0.2s',
+            cursor: 'pointer',
+          }}
+          onMouseEnter={e => { e.currentTarget.style.transform = 'scale(1.1)'; e.currentTarget.style.boxShadow = '0 6px 20px rgba(37,211,102,0.5)'; }}
+          onMouseLeave={e => { e.currentTarget.style.transform = 'scale(1)'; e.currentTarget.style.boxShadow = '0 4px 12px rgba(37,211,102,0.4)'; }}
+        >
+          <svg viewBox="0 0 24 24" width="32" height="32" fill="#fff">
+            <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
+          </svg>
+        </a>
+      )}
     </div>
   );
 };

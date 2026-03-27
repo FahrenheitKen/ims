@@ -22,6 +22,7 @@ export interface Investor {
   tax_id: string | null;
   next_of_kin_name: string | null;
   next_of_kin_phone: string | null;
+  next_of_kin_relationship: string | null;
   bank_name: string | null;
   bank_account: string | null;
   bank_branch: string | null;
@@ -30,7 +31,7 @@ export interface Investor {
   monthly_payout: number;
   start_date: string;
   end_date: string;
-  status: 'active' | 'deactivated' | 'completed' | 'closed';
+  status: 'pending' | 'active' | 'deactivated' | 'completed' | 'closed';
   password_changed: boolean;
   remaining_months: number;
   full_name: string;
@@ -50,6 +51,7 @@ export interface InvestmentTransaction {
 export interface PayoutSchedule {
   id: number;
   investor_id: number;
+  contract_id: number | null;
   due_date: string;
   expected_amount: number;
   paid_amount: number;
@@ -94,6 +96,24 @@ export interface Activity {
   details: string | null;
   performed_at: string;
   user?: { id: number; name: string };
+}
+
+export interface Contract {
+  id: number;
+  investor_id: number;
+  contract_id: string;
+  total_invested: number;
+  interest_rate: number;
+  monthly_payout: number;
+  start_date: string;
+  end_date: string;
+  status: 'active' | 'completed' | 'deactivated' | 'closed';
+  remaining_months: number;
+  created_at: string;
+  updated_at: string;
+  investor?: Investor;
+  payout_schedules?: PayoutSchedule[];
+  investment_transactions?: InvestmentTransaction[];
 }
 
 export interface DashboardData {

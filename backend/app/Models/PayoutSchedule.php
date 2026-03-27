@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class PayoutSchedule extends Model
 {
-    protected $fillable = ['investor_id', 'due_date', 'expected_amount', 'paid_amount', 'status'];
+    protected $fillable = ['investor_id', 'contract_id', 'due_date', 'expected_amount', 'paid_amount', 'status'];
 
     protected function casts(): array
     {
@@ -27,6 +27,11 @@ class PayoutSchedule extends Model
     public function investor(): BelongsTo
     {
         return $this->belongsTo(Investor::class);
+    }
+
+    public function contract(): BelongsTo
+    {
+        return $this->belongsTo(\App\Models\Contract::class);
     }
 
     public function paymentAllocations(): HasMany

@@ -17,14 +17,14 @@ import InvestorDetailPage from './pages/admin/InvestorDetailPage';
 import ReportsPage from './pages/admin/ReportsPage';
 import ProfilePage from './pages/admin/ProfilePage';
 import SettingsPage from './pages/admin/SettingsPage';
+import ContractsPage from './pages/admin/ContractsPage';
+import ContractDetailPage from './pages/admin/ContractDetailPage';
 
 // Investor Pages
 import InvestorLoginPage from './pages/investor/LoginPage';
 import InvestorDashboardPage from './pages/investor/DashboardPage';
-import InvestorSchedulesPage from './pages/investor/SchedulesPage';
-import InvestorPaymentsPage from './pages/investor/PaymentsPage';
-import InvestorDocumentsPage from './pages/investor/DocumentsPage';
 import InvestorProfilePage from './pages/investor/ProfilePage';
+import InvestorContractsPage from './pages/investor/ContractsPage';
 import InvestorResetPasswordPage from './pages/investor/ResetPasswordPage';
 import InvestorRegisterPage from './pages/investor/RegisterPage';
 import InvestorReferralsPage from './pages/investor/ReferralsPage';
@@ -62,6 +62,8 @@ const App: React.FC = () => {
                 <Route index element={<DashboardPage />} />
                 <Route path="investors" element={<InvestorsPage />} />
                 <Route path="investors/:id" element={<InvestorDetailPage />} />
+                <Route path="contracts" element={<ContractsPage />} />
+                <Route path="contracts/:id" element={<ContractDetailPage />} />
                 <Route path="reports" element={<ReportsPage />} />
                 <Route path="profile" element={<ProfilePage />} />
                 <Route path="settings" element={<SettingsPage />} />
@@ -73,9 +75,7 @@ const App: React.FC = () => {
               <Route path="/investor/reset-password" element={<InvestorResetPasswordPage />} />
               <Route path="/investor" element={<InvestorRoute><InvestorLayout /></InvestorRoute>}>
                 <Route index element={<InvestorDashboardPage />} />
-                <Route path="schedules" element={<InvestorSchedulesPage />} />
-                <Route path="payments" element={<InvestorPaymentsPage />} />
-                <Route path="documents" element={<InvestorDocumentsPage />} />
+                <Route path="contracts" element={<InvestorContractsPage />} />
                 <Route path="referrals" element={<InvestorReferralsPage />} />
                 <Route path="profile" element={<InvestorProfilePage />} />
               </Route>

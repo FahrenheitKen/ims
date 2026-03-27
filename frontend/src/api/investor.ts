@@ -26,3 +26,5 @@ export const getInvestorSchedules = () => apiClient.get('/investor/schedules');
 export const getInvestorPayments = (page = 1) => apiClient.get('/investor/payments', { params: { page } });
 export const getInvestorDocuments = () => apiClient.get('/investor/documents');
 export const getInvestorReferrals = () => apiClient.get('/investor/referrals');
+export const getInvestorPortalContracts = () => apiClient.get('/investor/contracts');
+export const getInvestorPortalContract = (id: number) => apiClient.get(`/investor/contracts/${id}`);

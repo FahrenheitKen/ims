@@ -17,6 +17,7 @@ class SettingsController extends Controller
         return response()->json([
             'app_name' => $settings['app_name'] ?? 'KAP IMS',
             'app_logo' => $settings['app_logo'] ?? null,
+            'whatsapp_number' => $settings['whatsapp_number'] ?? null,
         ]);
     }
 
@@ -26,9 +27,14 @@ class SettingsController extends Controller
             'app_name' => 'required|string|max:255',
             'app_logo' => 'nullable|image|mimes:png,jpg,jpeg,svg,webp|max:2048',
             'remove_logo' => 'nullable|boolean',
+            'whatsapp_number' => 'nullable|string|max:20',
         ]);
 
         Setting::set('app_name', $request->input('app_name'));
+
+        if ($request->has('whatsapp_number')) {
+            Setting::set('whatsapp_number', $request->input('whatsapp_number'));
+        }
 
         if ($request->boolean('remove_logo')) {
             $oldLogo = Setting::get('app_logo');
@@ -52,6 +58,7 @@ class SettingsController extends Controller
         return response()->json([
             'app_name' => $settings['app_name'] ?? 'KAP IMS',
             'app_logo' => $settings['app_logo'] ?? null,
+            'whatsapp_number' => $settings['whatsapp_number'] ?? null,
             'message' => 'Settings updated successfully',
         ]);
     }

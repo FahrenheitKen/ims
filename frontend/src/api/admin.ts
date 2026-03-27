@@ -1,5 +1,5 @@
 import apiClient, { getCsrfCookie } from './client';
-import type { DashboardData, Investor, PaginatedResponse, Payment, PaymentSummary, PayoutSchedule, Activity, Document } from '../types';
+import type { DashboardData, Investor, PaginatedResponse, Payment, PaymentSummary, PayoutSchedule, Activity, Document, Contract } from '../types';
 
 // Auth
 export const adminLogin = async (email: string, password: string) => {
@@ -52,12 +52,16 @@ export const updatePayment = (investorId: number, paymentId: number, data: Recor
   apiClient.put(`/admin/investors/${investorId}/payments/${paymentId}`, data);
 export const deletePayment = (investorId: number, paymentId: number) =>
   apiClient.delete(`/admin/investors/${investorId}/payments/${paymentId}`);
-export const getPaymentSummary = (investorId: number) =>
-  apiClient.get<PaymentSummary>(`/admin/investors/${investorId}/payment-summary`);
+export const getPaymentSummary = (investorId: number, contractId?: number) =>
+  apiClient.get<PaymentSummary>(`/admin/investors/${investorId}/payment-summary`, { params: contractId ? { contract_id: contractId } : {} });
 
 // Schedules
 export const getSchedules = (investorId: number) =>
   apiClient.get<{ schedules: PayoutSchedule[]; commissions: any[] }>(`/admin/investors/${investorId}/schedules`);
+
+// Statement
+export const getStatement = (investorId: number, from?: string, to?: string) =>
+  apiClient.get(`/admin/investors/${investorId}/statement`, { params: { from, to } });
 
 // Documents
 export const getDocuments = (investorId: number) =>
@@ -80,7 +84,15 @@ export const getActivities = (investorId: number, page = 1) =>
 export const getInvestorReferrals = (investorId: number) =>
   apiClient.get(`/admin/investors/${investorId}/referrals`);
 
-// Contract
+// Contracts
+export const getContracts = (params: Record<string, unknown>) =>
+  apiClient.get<PaginatedResponse<Contract>>('/admin/contracts', { params });
+export const getContract = (id: number) =>
+  apiClient.get(`/admin/contracts/${id}`);
+export const getInvestorContracts = (investorId: number) =>
+  apiClient.get<Contract[]>(`/admin/investors/${investorId}/contracts`);
+export const createContract = (investorId: number, data: { amount: number; start_date?: string; custom_interest_rate?: number }) =>
+  apiClient.post(`/admin/investors/${investorId}/contracts`, data);
 export const renewContract = (investorId: number) =>
   apiClient.post(`/admin/investors/${investorId}/renew`);
 

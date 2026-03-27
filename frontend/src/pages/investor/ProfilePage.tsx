@@ -7,7 +7,6 @@ import {
   PhoneOutlined,
   IdcardOutlined,
   EnvironmentOutlined,
-  CalendarOutlined,
   RiseOutlined,
   DollarOutlined,
   PercentageOutlined,
@@ -15,7 +14,7 @@ import {
 import { useMutation } from '@tanstack/react-query';
 import { changePassword } from '../../api/investor';
 import { useAuth } from '../../contexts/AuthContext';
-import { formatCurrency, formatDate, formatRate } from '../../utils/format';
+import { formatCurrency, formatRate } from '../../utils/format';
 
 const { Title, Text } = Typography;
 
@@ -103,6 +102,7 @@ const InvestorProfilePage: React.FC = () => {
         styles={{ body: { padding: 0 } }}
       >
         <div
+          className="profile-banner"
           style={{
             background: 'linear-gradient(135deg, #e8eaf6 0%, #f3e5f5 100%)',
             padding: '36px 32px 24px',
@@ -119,15 +119,16 @@ const InvestorProfilePage: React.FC = () => {
               fontSize: 28,
               fontWeight: 700,
               boxShadow: '0 4px 12px rgba(99,102,241,0.3)',
+              flexShrink: 0,
             }}
           >
             {initials}
           </Avatar>
-          <div style={{ flex: 1 }}>
-            <Title level={3} style={{ margin: 0, fontWeight: 700 }}>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <Title level={3} style={{ margin: 0, fontWeight: 700, wordBreak: 'break-word' }}>
               {investorUser.prefix} {investorUser.first_name} {investorUser.second_name} {investorUser.last_name}
             </Title>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 6, flexWrap: 'wrap' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 6, flexWrap: 'wrap' }}>
               <Tag style={{ borderRadius: 6, fontSize: 12 }}>{investorUser.investor_id}</Tag>
               <Tag
                 color={investorUser.status === 'active' ? 'green' : 'orange'}
@@ -135,13 +136,13 @@ const InvestorProfilePage: React.FC = () => {
               >
                 {investorUser.status.toUpperCase()}
               </Tag>
-              <Text type="secondary" style={{ fontSize: 13 }}>{investorUser.email}</Text>
+              <Text type="secondary" style={{ fontSize: 13, wordBreak: 'break-all' }}>{investorUser.email}</Text>
             </div>
           </div>
         </div>
 
         {/* Investment Stats */}
-        <div style={{ padding: '20px 32px' }}>
+        <div className="profile-stats" style={{ padding: '20px 32px' }}>
           <Row gutter={[16, 16]}>
             <Col xs={24} sm={12} md={6}>
               <StatCard
@@ -167,14 +168,6 @@ const InvestorProfilePage: React.FC = () => {
                 bg="#eff6ff"
               />
             </Col>
-            <Col xs={24} sm={12} md={6}>
-              <StatCard
-                label="Contract Ends"
-                value={formatDate(investorUser.end_date)}
-                accent="#d97706"
-                bg="#fffbeb"
-              />
-            </Col>
           </Row>
         </div>
       </Card>
@@ -193,7 +186,7 @@ const InvestorProfilePage: React.FC = () => {
               </span>
             }
           >
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0 24px' }}>
+            <div className="profile-info-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0 24px' }}>
               <InfoItem icon={<MailOutlined />} label="Email" value={investorUser.email} />
               <InfoItem icon={<PhoneOutlined />} label="Phone" value={investorUser.phone} />
               <InfoItem icon={<IdcardOutlined />} label="ID Number" value={investorUser.id_number} />
@@ -208,16 +201,6 @@ const InvestorProfilePage: React.FC = () => {
                 value={`${investorUser.address}, ${investorUser.city}`}
               />
               <InfoItem icon={<EnvironmentOutlined />} label="Country" value={investorUser.country} />
-              <InfoItem
-                icon={<CalendarOutlined />}
-                label="Contract Start"
-                value={formatDate(investorUser.start_date)}
-              />
-              <InfoItem
-                icon={<CalendarOutlined />}
-                label="Contract End"
-                value={formatDate(investorUser.end_date)}
-              />
             </div>
           </Card>
         </Col>
@@ -286,6 +269,29 @@ const InvestorProfilePage: React.FC = () => {
           </Card>
         </Col>
       </Row>
+
+      <style>{`
+        @media (max-width: 576px) {
+          .profile-banner {
+            flex-direction: column !important;
+            text-align: center !important;
+            padding: 24px 16px 20px !important;
+            gap: 12px !important;
+          }
+          .profile-banner .ant-typography {
+            font-size: 20px !important;
+          }
+          .profile-banner > div:last-child > div {
+            justify-content: center !important;
+          }
+          .profile-stats {
+            padding: 16px !important;
+          }
+          .profile-info-grid {
+            grid-template-columns: 1fr !important;
+          }
+        }
+      `}</style>
     </div>
   );
 };

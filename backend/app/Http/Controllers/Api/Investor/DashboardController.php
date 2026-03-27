@@ -12,16 +12,19 @@ class DashboardController extends Controller
     {
         $investor = $request->user('investor');
 
+        $dueSchedules = $investor->payoutSchedules()
+            ->where('due_date', '<=', now()->startOfDay())
+            ->get();
+        $totalDueToDate = $dueSchedules->sum(fn ($s) => max(0, (float) $s->expected_amount - (float) $s->paid_amount));
+
         return response()->json([
             'investor' => $investor,
             'summary' => [
                 'total_invested' => (float) $investor->total_invested,
                 'interest_rate' => (float) $investor->interest_rate,
                 'monthly_payout' => (float) $investor->monthly_payout,
-                'remaining_months' => $investor->remaining_months,
-                'total_paid' => $investor->payments()->sum('amount'),
-                'contract_start' => $investor->start_date,
-                'contract_end' => $investor->end_date,
+                'total_paid' => (float) $investor->payments()->sum('amount'),
+                'total_due_to_date' => $totalDueToDate,
             ],
         ]);
     }

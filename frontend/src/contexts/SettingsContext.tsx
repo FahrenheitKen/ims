@@ -5,6 +5,7 @@ interface AppSettings {
   appName: string;
   appLogo: string | null;
   logoUrl: string | null;
+  whatsappNumber: string | null;
   loading: boolean;
   refresh: () => Promise<void>;
 }
@@ -13,6 +14,7 @@ const SettingsContext = createContext<AppSettings>({
   appName: 'KAP IMS',
   appLogo: null,
   logoUrl: null,
+  whatsappNumber: null,
   loading: true,
   refresh: async () => {},
 });
@@ -22,6 +24,7 @@ const STORAGE_BASE = 'http://localhost:8000/storage/';
 export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [appName, setAppName] = useState('KAP IMS');
   const [appLogo, setAppLogo] = useState<string | null>(null);
+  const [whatsappNumber, setWhatsappNumber] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
   const refresh = useCallback(async () => {
@@ -29,6 +32,7 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       const { data } = await getSettings();
       setAppName(data.app_name || 'KAP IMS');
       setAppLogo(data.app_logo || null);
+      setWhatsappNumber(data.whatsapp_number || null);
     } catch {
       // Keep defaults
     } finally {
@@ -43,7 +47,7 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const logoUrl = appLogo ? `${STORAGE_BASE}${appLogo}` : null;
 
   return (
-    <SettingsContext.Provider value={{ appName, appLogo, logoUrl, loading, refresh }}>
+    <SettingsContext.Provider value={{ appName, appLogo, logoUrl, whatsappNumber, loading, refresh }}>
       {children}
     </SettingsContext.Provider>
   );

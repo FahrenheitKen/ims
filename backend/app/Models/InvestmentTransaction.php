@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class InvestmentTransaction extends Model
 {
-    protected $fillable = ['investor_id', 'type', 'amount', 'date', 'note'];
+    protected $fillable = ['investor_id', 'contract_id', 'type', 'amount', 'date', 'note'];
 
     protected function casts(): array
     {
@@ -20,5 +20,10 @@ class InvestmentTransaction extends Model
     public function investor(): BelongsTo
     {
         return $this->belongsTo(Investor::class);
+    }
+
+    public function contract(): BelongsTo
+    {
+        return $this->belongsTo(\App\Models\Contract::class);
     }
 }

@@ -2,9 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Layout, Menu, Button, Avatar, Dropdown, Drawer, theme } from 'antd';
 import {
   DashboardOutlined,
-  ScheduleOutlined,
-  DollarOutlined,
-  FileOutlined,
+  FileProtectOutlined,
   GiftOutlined,
   LogoutOutlined,
   SettingOutlined,
@@ -45,9 +43,7 @@ const InvestorLayout: React.FC = () => {
 
   const menuItems = [
     { key: '/investor', icon: <DashboardOutlined />, label: 'Dashboard' },
-    { key: '/investor/schedules', icon: <ScheduleOutlined />, label: 'Payment Schedule' },
-    { key: '/investor/payments', icon: <DollarOutlined />, label: 'Payment History' },
-    { key: '/investor/documents', icon: <FileOutlined />, label: 'Documents' },
+    { key: '/investor/contracts', icon: <FileProtectOutlined />, label: 'Contracts' },
     { key: '/investor/referrals', icon: <GiftOutlined />, label: 'Referrals' },
   ];
 
@@ -120,7 +116,7 @@ const InvestorLayout: React.FC = () => {
           open={mobileOpen}
           onClose={() => setMobileOpen(false)}
           width={250}
-          styles={{ body: { padding: 0, background: '#001529' }, header: { display: 'none' } }}
+          styles={{ body: { padding: 0, background: '#001529' }, header: { display: 'none' }, wrapper: { background: '#001529' } }}
         >
           {siderContent}
         </Drawer>
@@ -156,7 +152,7 @@ const InvestorLayout: React.FC = () => {
           <Outlet />
         </Content>
         <Footer style={{ textAlign: 'center', padding: '12px 16px', color: 'rgba(0,0,0,0.45)', fontSize: 13 }}>
-          All Rights Reserved by Samawati Capital Investment. Developed by Bluechange Technology.
+          All Rights Reserved by Zig Capital Investment. Developed by Bluechange Technology.
         </Footer>
       </Layout>
     </Layout>

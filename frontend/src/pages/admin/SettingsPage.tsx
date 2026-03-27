@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Card, Form, Input, Button, Upload, message, Typography, Avatar, Spin } from 'antd';
-import { SettingOutlined, UploadOutlined, DeleteOutlined } from '@ant-design/icons';
+import { SettingOutlined, UploadOutlined, DeleteOutlined, WhatsAppOutlined } from '@ant-design/icons';
 import { updateSettings } from '../../api/admin';
 import { useSettings } from '../../contexts/SettingsContext';
 import type { UploadFile } from 'antd/es/upload/interface';
@@ -8,7 +8,7 @@ import type { UploadFile } from 'antd/es/upload/interface';
 const { Title, Text } = Typography;
 
 const SettingsPage: React.FC = () => {
-  const { appName, logoUrl, loading, refresh } = useSettings();
+  const { appName, logoUrl, whatsappNumber, loading, refresh } = useSettings();
   const [form] = Form.useForm();
   const [saving, setSaving] = useState(false);
   const [fileList, setFileList] = useState<UploadFile[]>([]);
@@ -16,11 +16,11 @@ const SettingsPage: React.FC = () => {
   const [removeLogo, setRemoveLogo] = useState(false);
 
   useEffect(() => {
-    form.setFieldsValue({ app_name: appName });
+    form.setFieldsValue({ app_name: appName, whatsapp_number: whatsappNumber });
     setPreviewUrl(logoUrl);
     setRemoveLogo(false);
     setFileList([]);
-  }, [appName, logoUrl, form]);
+  }, [appName, logoUrl, whatsappNumber, form]);
 
   const handleSave = async () => {
     try {
@@ -29,6 +29,7 @@ const SettingsPage: React.FC = () => {
 
       const formData = new FormData();
       formData.append('app_name', values.app_name);
+      formData.append('whatsapp_number', values.whatsapp_number || '');
 
       if (removeLogo) {
         formData.append('remove_logo', '1');
@@ -156,6 +157,15 @@ const SettingsPage: React.FC = () => {
             rules={[{ required: true, message: 'App name is required' }]}
           >
             <Input size="large" placeholder="e.g. KAP IMS" />
+          </Form.Item>
+
+          {/* WhatsApp Number */}
+          <Form.Item
+            name="whatsapp_number"
+            label={<Text strong><WhatsAppOutlined style={{ color: '#25d366', marginRight: 6 }} />WhatsApp Number</Text>}
+            extra="Include country code, e.g. 254712345678. This enables the WhatsApp chat button on the landing page."
+          >
+            <Input size="large" placeholder="e.g. 254712345678" />
           </Form.Item>
 
           <Button

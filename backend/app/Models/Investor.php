@@ -27,7 +27,7 @@ class Investor extends Authenticatable
     protected $fillable = [
         'investor_id', 'prefix', 'first_name', 'second_name', 'last_name',
         'phone', 'id_number', 'other_phone', 'email', 'address', 'city', 'country',
-        'tax_id', 'next_of_kin_name', 'next_of_kin_phone',
+        'tax_id', 'next_of_kin_name', 'next_of_kin_phone', 'next_of_kin_relationship',
         'bank_name', 'bank_account', 'bank_branch',
         'total_invested', 'interest_rate', 'monthly_payout',
         'start_date', 'end_date', 'password', 'password_changed', 'status',
@@ -86,6 +86,11 @@ class Investor extends Authenticatable
     public function activities(): HasMany
     {
         return $this->hasMany(Activity::class);
+    }
+
+    public function contracts(): HasMany
+    {
+        return $this->hasMany(Contract::class);
     }
 
     // Referral relationships

@@ -116,7 +116,7 @@ const InvestorLoginPage: React.FC = () => {
             <BankOutlined style={{ color: '#fff', fontSize: 24 }} />
           </div>
           <div>
-            <div style={{ color: '#fff', fontSize: 20, fontWeight: 700, lineHeight: 1.2 }}>Samawati Capital</div>
+            <div style={{ color: '#fff', fontSize: 20, fontWeight: 700, lineHeight: 1.2 }}>Zig Capital</div>
             <div style={{ color: 'rgba(255,255,255,0.45)', fontSize: 12, letterSpacing: 1.5, textTransform: 'uppercase' }}>Investment Ltd</div>
           </div>
         </div>
@@ -164,7 +164,7 @@ const InvestorLoginPage: React.FC = () => {
         {/* Footer */}
         <div style={{ position: 'absolute', bottom: 32, left: 48, right: 48 }}>
           <div style={{ color: 'rgba(255,255,255,0.25)', fontSize: 12 }}>
-            All Rights Reserved by Samawati Capital Investment Ltd.
+            All Rights Reserved by Zig Capital Investment Ltd.
           </div>
         </div>
       </div>

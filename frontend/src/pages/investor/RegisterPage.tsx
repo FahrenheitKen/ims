@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Form, Input, InputNumber, Button, Steps, Checkbox, Modal, message, Typography, Result } from 'antd';
+import { Form, Input, InputNumber, Button, Steps, Checkbox, Modal, Select, message, Typography, Result } from 'antd';
 import {
   UserOutlined,
   PhoneOutlined,
@@ -39,7 +39,7 @@ const RegisterPage: React.FC = () => {
   const fieldsByStep: string[][] = [
     ['prefix', 'first_name', 'second_name', 'last_name', 'id_number', 'email'],
     ['phone', 'other_phone', 'address', 'city', 'country'],
-    ['next_of_kin_name', 'next_of_kin_phone'],
+    ['next_of_kin_name', 'next_of_kin_phone', 'next_of_kin_relationship'],
     ['bank_name', 'bank_account', 'bank_branch', 'tax_id'],
     ['initial_amount', 'terms'],
   ];
@@ -172,7 +172,7 @@ const RegisterPage: React.FC = () => {
 
         <div style={{ position: 'absolute', bottom: 32, left: 36, right: 36 }}>
           <div style={{ color: 'rgba(255,255,255,0.25)', fontSize: 12 }}>
-            All Rights Reserved by Samawati Capital Investment Ltd.
+            All Rights Reserved by Zig Capital Investment Ltd.
           </div>
         </div>
       </div>
@@ -251,6 +251,17 @@ const RegisterPage: React.FC = () => {
             <div className="reg-form-grid" style={{ display: currentStep === 2 ? 'grid' : 'none', gridTemplateColumns: '1fr 1fr', gap: '0 16px' }}>
               <Form.Item name="next_of_kin_name" label="Full Name"><Input placeholder="Next of kin full name" /></Form.Item>
               <Form.Item name="next_of_kin_phone" label="Phone Number"><Input placeholder="Next of kin phone" /></Form.Item>
+              <Form.Item name="next_of_kin_relationship" label="Relationship" style={{ gridColumn: '1 / -1' }}>
+                <Select placeholder="Select relationship" allowClear options={[
+                  { value: 'Spouse', label: 'Spouse' },
+                  { value: 'Parent', label: 'Parent' },
+                  { value: 'Child', label: 'Child' },
+                  { value: 'Sibling', label: 'Sibling' },
+                  { value: 'Guardian', label: 'Guardian' },
+                  { value: 'Friend', label: 'Friend' },
+                  { value: 'Other', label: 'Other' },
+                ]} />
+              </Form.Item>
             </div>
 
             {/* Step 3: Banking */}
@@ -439,7 +450,7 @@ const RegisterPage: React.FC = () => {
       >
         <div style={{ maxHeight: 400, overflow: 'auto', fontSize: 14, color: '#475569', lineHeight: 1.8 }}>
           <p><strong>1. Investment Agreement</strong></p>
-          <p>By registering as an investor with Samawati Capital Investment Ltd, you agree to enter into an investment contract for a period of 12 months from the date of account approval.</p>
+          <p>By registering as an investor with Zig Capital Investment Ltd, you agree to enter into an investment contract for a period of 12 months from the date of account approval.</p>
 
           <p><strong>2. Returns and Payouts</strong></p>
           <p>Monthly interest payouts are calculated based on your investment tier and are paid according to the agreed schedule. Returns are not guaranteed and are subject to market conditions, though we employ rigorous risk management strategies.</p>
@@ -460,7 +471,7 @@ const RegisterPage: React.FC = () => {
           <p>All personal information provided during registration will be kept confidential and used solely for the purpose of managing your investment account.</p>
 
           <p><strong>8. Amendments</strong></p>
-          <p>Samawati Capital Investment Ltd reserves the right to amend these terms and conditions. Investors will be notified of any changes through their registered email.</p>
+          <p>Zig Capital Investment Ltd reserves the right to amend these terms and conditions. Investors will be notified of any changes through their registered email.</p>
         </div>
       </Modal>
     </div>

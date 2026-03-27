@@ -1,11 +1,10 @@
 import React, { useState } from 'react';
-import { Table, Button, Input, Space, Dropdown, Tag, Modal, Form, InputNumber, Select, Steps, DatePicker, message, Typography } from 'antd';
+import { Table, Button, Input, Space, Dropdown, Tag, Modal, Form, Select, Steps, message, Typography } from 'antd';
 import {
   PlusOutlined,
   SearchOutlined,
   DownOutlined,
   ExportOutlined,
-  DollarOutlined,
   EyeOutlined,
   EditOutlined,
   DeleteOutlined,
@@ -15,7 +14,6 @@ import {
   PhoneOutlined,
   BankOutlined,
   HeartOutlined,
-  WalletOutlined,
 } from '@ant-design/icons';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
@@ -73,7 +71,6 @@ const InvestorsPage: React.FC = () => {
   const handleAction = (key: string, investor: Investor) => {
     switch (key) {
       case 'view': navigate(`/admin/investors/${investor.id}`); break;
-      case 'pay': navigate(`/admin/investors/${investor.id}?tab=payment`); break;
       case 'edit': navigate(`/admin/investors/${investor.id}?tab=edit`); break;
       case 'delete':
         Modal.confirm({
@@ -165,7 +162,6 @@ const InvestorsPage: React.FC = () => {
               { key: 'reject', label: 'Reject', icon: <DeleteOutlined />, danger: true },
             ]
           : [
-              { key: 'pay', label: 'Pay', icon: <DollarOutlined style={{ color: '#16a34a' }} /> },
               { key: 'view', label: 'View', icon: <EyeOutlined style={{ color: '#2563eb' }} /> },
               { key: 'edit', label: 'Edit', icon: <EditOutlined style={{ color: '#d97706' }} /> },
               { type: 'divider' as const },
@@ -244,16 +240,15 @@ const InvestorsPage: React.FC = () => {
               <Button onClick={() => { setIsModalOpen(false); form.resetFields(); setCurrentStep(0); }}>
                 Cancel
               </Button>
-              {currentStep < 4 ? (
+              {currentStep < 3 ? (
                 <Button
                   type="primary"
                   onClick={() => {
                     const fieldsByStep: string[][] = [
                       ['prefix', 'first_name', 'second_name', 'last_name', 'id_number', 'email'],
                       ['phone', 'other_phone', 'address', 'city', 'country'],
-                      ['next_of_kin_name', 'next_of_kin_phone'],
+                      ['next_of_kin_name', 'next_of_kin_phone', 'next_of_kin_relationship'],
                       ['bank_name', 'bank_account', 'bank_branch', 'tax_id'],
-                      ['initial_amount', 'start_date', 'custom_interest_rate'],
                     ];
                     form.validateFields(fieldsByStep[currentStep]).then(() => setCurrentStep(s => s + 1)).catch(() => {});
                   }}
@@ -280,9 +275,8 @@ const InvestorsPage: React.FC = () => {
               const fieldsByStep: string[][] = [
                 ['prefix', 'first_name', 'second_name', 'last_name', 'id_number', 'email'],
                 ['phone', 'other_phone', 'address', 'city', 'country'],
-                ['next_of_kin_name', 'next_of_kin_phone'],
+                ['next_of_kin_name', 'next_of_kin_phone', 'next_of_kin_relationship'],
                 ['bank_name', 'bank_account', 'bank_branch', 'tax_id'],
-                ['initial_amount', 'start_date', 'custom_interest_rate'],
               ];
               form.validateFields(fieldsByStep[currentStep]).then(() => setCurrentStep(step)).catch(() => {});
             }
@@ -293,18 +287,12 @@ const InvestorsPage: React.FC = () => {
             { title: 'Contact', icon: <PhoneOutlined /> },
             { title: 'Next of Kin', icon: <HeartOutlined /> },
             { title: 'Banking', icon: <BankOutlined /> },
-            { title: 'Investment', icon: <WalletOutlined /> },
           ]}
         />
         <Form form={form} layout="vertical" onFinish={(values) => {
-          const payload = {
-            ...values,
-            start_date: values.start_date?.format('YYYY-MM-DD') || undefined,
-            custom_interest_rate: values.custom_interest_rate || undefined,
-          };
-          createMutation.mutate(payload);
+          createMutation.mutate(values);
         }}>
-          {/* Step 0: Personal Info */}
+          {/* Step 0: Personal Details */}
           <div style={{ display: currentStep === 0 ? 'grid' : 'none', gridTemplateColumns: '1fr 1fr', gap: '0 16px' }}>
             <Form.Item name="prefix" label="Prefix"><Input placeholder="Mr / Mrs / Dr" /></Form.Item>
             <Form.Item name="first_name" label="First Name" rules={[{ required: true }]}><Input /></Form.Item>
@@ -314,7 +302,7 @@ const InvestorsPage: React.FC = () => {
             <Form.Item name="email" label="Email" rules={[{ required: true, type: 'email' }]}><Input /></Form.Item>
           </div>
 
-          {/* Step 1: Contact & Address */}
+          {/* Step 1: Contacts */}
           <div style={{ display: currentStep === 1 ? 'grid' : 'none', gridTemplateColumns: '1fr 1fr', gap: '0 16px' }}>
             <Form.Item name="phone" label="Phone Number" rules={[{ required: true }]}><Input /></Form.Item>
             <Form.Item name="other_phone" label="Other Phone"><Input /></Form.Item>
@@ -325,8 +313,19 @@ const InvestorsPage: React.FC = () => {
 
           {/* Step 2: Next of Kin */}
           <div style={{ display: currentStep === 2 ? 'grid' : 'none', gridTemplateColumns: '1fr 1fr', gap: '0 16px' }}>
-            <Form.Item name="next_of_kin_name" label="Full Name"><Input /></Form.Item>
-            <Form.Item name="next_of_kin_phone" label="Phone Number"><Input /></Form.Item>
+            <Form.Item name="next_of_kin_name" label="Full Name"><Input placeholder="Next of kin full name" /></Form.Item>
+            <Form.Item name="next_of_kin_phone" label="Phone Number"><Input placeholder="Next of kin phone" /></Form.Item>
+            <Form.Item name="next_of_kin_relationship" label="Relationship" style={{ gridColumn: '1 / -1' }}>
+              <Select placeholder="Select relationship" allowClear options={[
+                { value: 'Spouse', label: 'Spouse' },
+                { value: 'Parent', label: 'Parent' },
+                { value: 'Child', label: 'Child' },
+                { value: 'Sibling', label: 'Sibling' },
+                { value: 'Guardian', label: 'Guardian' },
+                { value: 'Friend', label: 'Friend' },
+                { value: 'Other', label: 'Other' },
+              ]} />
+            </Form.Item>
           </div>
 
           {/* Step 3: Banking */}
@@ -336,20 +335,13 @@ const InvestorsPage: React.FC = () => {
             <Form.Item name="bank_branch" label="Branch"><Input /></Form.Item>
             <Form.Item name="tax_id" label="Tax ID"><Input /></Form.Item>
           </div>
-
-          {/* Step 4: Investment */}
-          <div style={{ display: currentStep === 4 ? 'grid' : 'none', gridTemplateColumns: '1fr 1fr', gap: '0 16px' }}>
-            <Form.Item name="initial_amount" label="Initial Investment Amount (Ksh)" rules={[{ required: true }, { type: 'number', min: 50000, message: 'Minimum KES 50,000' }]} style={{ gridColumn: '1 / -1' }}>
-              <InputNumber style={{ width: '100%' }} size="large" formatter={v => `${v}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')} parser={v => v!.replace(/,/g, '') as unknown as number} />
-            </Form.Item>
-            <Form.Item name="start_date" label="Contract Start Date" help="Leave blank to use today's date">
-              <DatePicker style={{ width: '100%' }} size="large" />
-            </Form.Item>
-            <Form.Item name="custom_interest_rate" label="Custom Interest Rate (%)" help="Leave blank to use the default bracket rate">
-              <InputNumber style={{ width: '100%' }} size="large" min={0} max={100} step={0.01} precision={2} placeholder="e.g. 23.08" />
-            </Form.Item>
-          </div>
         </Form>
+
+        {currentStep === 3 && (
+          <div style={{ marginTop: 8, padding: 12, background: '#f0f5ff', borderRadius: 8, fontSize: 13, color: '#475569' }}>
+            After creating the investor, you can add a contract from their profile page under the <strong>Contracts</strong> tab.
+          </div>
+        )}
       </Modal>
     </div>
   );

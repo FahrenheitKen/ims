@@ -48,8 +48,9 @@ Route::prefix('admin')->middleware(['auth:sanctum', 'admin'])->group(function ()
     Route::delete('/investors/{investor}/payments/{payment}', [Admin\PaymentController::class, 'destroy']);
     Route::get('/investors/{investor}/payment-summary', [Admin\PaymentController::class, 'summary']);
 
-    // Schedules (Ledger)
+    // Schedules (Ledger) & Statement
     Route::get('/investors/{investor}/schedules', [Admin\ScheduleController::class, 'index']);
+    Route::get('/investors/{investor}/statement', [Admin\ScheduleController::class, 'statement']);
 
     // Documents
     Route::get('/investors/{investor}/documents', [Admin\DocumentController::class, 'index']);
@@ -63,7 +64,11 @@ Route::prefix('admin')->middleware(['auth:sanctum', 'admin'])->group(function ()
     // Referrals
     Route::get('/investors/{investor}/referrals', [Admin\InvestorController::class, 'referrals']);
 
-    // Contract
+    // Contracts
+    Route::get('/contracts', [Admin\ContractController::class, 'index']);
+    Route::get('/contracts/{contract}', [Admin\ContractController::class, 'show']);
+    Route::get('/investors/{investor}/contracts', [Admin\ContractController::class, 'investorContracts']);
+    Route::post('/investors/{investor}/contracts', [Admin\ContractController::class, 'store']);
     Route::post('/investors/{investor}/renew', [Admin\ContractController::class, 'renew']);
 
     // Reports
@@ -88,4 +93,7 @@ Route::prefix('investor')->middleware(['auth:investor'])->group(function () {
     Route::get('/documents/{document}/download', [Investor\DocumentController::class, 'download']);
 
     Route::get('/referrals', [Investor\ReferralController::class, 'index']);
+
+    Route::get('/contracts', [Investor\ContractController::class, 'index']);
+    Route::get('/contracts/{id}', [Investor\ContractController::class, 'show']);
 });

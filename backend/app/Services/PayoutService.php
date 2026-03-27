@@ -17,7 +17,8 @@ class PayoutService
         string $reference,
         ?string $paymentDate = null,
         ?string $note = null,
-        array $scheduleIds = []
+        array $scheduleIds = [],
+        ?int $contractId = null
     ): Payment {
         $payment = Payment::create([
             'investor_id' => $investor->id,
@@ -30,17 +31,22 @@ class PayoutService
 
         $remaining = $amount;
 
-        // Get schedules to allocate to — either specified or chronological
+        // Get schedules to allocate to — either specified or chronological, scoped to contract if provided
         if (!empty($scheduleIds)) {
             $schedules = $investor->payoutSchedules()
                 ->whereIn('id', $scheduleIds)
                 ->orderBy('due_date')
                 ->get();
         } else {
-            $schedules = $investor->payoutSchedules()
+            $query = $investor->payoutSchedules()
                 ->whereIn('status', ['overdue', 'partially_paid', 'pending'])
-                ->orderBy('due_date')
-                ->get();
+                ->orderBy('due_date');
+
+            if ($contractId) {
+                $query->where('contract_id', $contractId);
+            }
+
+            $schedules = $query->get();
         }
 
         foreach ($schedules as $schedule) {

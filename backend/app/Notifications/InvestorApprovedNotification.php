@@ -20,7 +20,7 @@ class InvestorApprovedNotification extends Notification
     public function toMail($notifiable): MailMessage
     {
         return (new MailMessage)
-            ->subject('Your Account Has Been Approved - Samawati Capital Investment')
+            ->subject('Your Account Has Been Approved - Zig Capital Investment')
             ->greeting('Hello ' . $notifiable->first_name . ',')
             ->line('Great news! Your investor account has been approved.')
             ->line('You can now log in to your Investor Portal using the following credentials:')
@@ -28,6 +28,6 @@ class InvestorApprovedNotification extends Notification
             ->line('**Password:** Your ID Number (' . $notifiable->id_number . ')')
             ->action('Log In to Your Portal', $this->loginUrl)
             ->line('For your security, you will be required to change your password upon first login.')
-            ->line('Thank you for choosing Samawati Capital Investment. We look forward to growing your wealth together!');
+            ->line('Thank you for choosing Zig Capital Investment. We look forward to growing your wealth together!');
     }
 }

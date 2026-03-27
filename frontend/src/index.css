@@ -61,6 +61,64 @@ body {
   margin: 0;
 }
 
+/* Market Ticker */
+@keyframes ticker-scroll {
+  0%   { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+
+.market-ticker-track {
+  display: flex;
+  align-items: center;
+  width: max-content;
+  animation: ticker-scroll 50s linear infinite;
+}
+
+.market-ticker-track:hover {
+  animation-play-state: paused;
+}
+
+.market-ticker-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 20px;
+  border-right: 1px solid rgba(255, 255, 255, 0.08);
+  white-space: nowrap;
+  font-size: 13px;
+  font-family: 'Inter', monospace, sans-serif;
+}
+
+.ticker-symbol {
+  color: #94a3b8;
+  font-weight: 600;
+  font-size: 12px;
+  letter-spacing: 0.5px;
+}
+
+.ticker-price {
+  color: #f1f5f9;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.ticker-change {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+.ticker-change.positive {
+  color: #4ade80;
+  background: rgba(74, 222, 128, 0.12);
+}
+
+.ticker-change.negative {
+  color: #f87171;
+  background: rgba(248, 113, 113, 0.12);
+}
+
 h1,
 h2 {
   font-family: var(--heading);

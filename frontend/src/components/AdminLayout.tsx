@@ -4,6 +4,7 @@ import {
   DashboardOutlined,
   TeamOutlined,
   FileTextOutlined,
+  FileProtectOutlined,
   LogoutOutlined,
   MenuFoldOutlined,
   MenuUnfoldOutlined,
@@ -43,6 +44,7 @@ const AdminLayout: React.FC = () => {
   const menuItems = [
     { key: '/admin', icon: <DashboardOutlined />, label: 'Dashboard' },
     { key: '/admin/investors', icon: <TeamOutlined />, label: 'Investors' },
+    { key: '/admin/contracts', icon: <FileProtectOutlined />, label: 'Contracts' },
     { key: '/admin/reports', icon: <FileTextOutlined />, label: 'Reports' },
     { key: '/admin/settings', icon: <SettingOutlined />, label: 'Settings' },
   ];
@@ -122,7 +124,7 @@ const AdminLayout: React.FC = () => {
           <Outlet />
         </Content>
         <Footer style={{ textAlign: 'center', padding: '12px 16px', color: 'rgba(0,0,0,0.45)', fontSize: 13 }}>
-          All Rights Reserved by Samawati Capital Investment. Developed by Bluechange Technology.
+          All Rights Reserved by Zig Capital Investment. Developed by Bluechange Technology.
         </Footer>
       </Layout>
     </Layout>

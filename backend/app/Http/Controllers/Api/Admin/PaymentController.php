@@ -18,7 +18,7 @@ class PaymentController extends Controller
     public function index(Investor $investor): JsonResponse
     {
         $payments = $investor->payments()
-            ->with('allocations.payoutSchedule')
+            ->with('allocations.payoutSchedule.contract')
             ->orderBy('payment_date', 'desc')
             ->paginate(15);
 
@@ -35,6 +35,7 @@ class PaymentController extends Controller
             'note' => 'nullable|string|max:500',
             'schedule_ids' => 'nullable|array',
             'schedule_ids.*' => 'exists:payout_schedules,id',
+            'contract_id' => 'nullable|exists:contracts,id',
         ]);
 
         $reference = $validated['reference'] ?? PayoutService::generateReference();
@@ -46,7 +47,8 @@ class PaymentController extends Controller
             $reference,
             $validated['payment_date'] ?? null,
             $validated['note'] ?? null,
-            $validated['schedule_ids'] ?? []
+            $validated['schedule_ids'] ?? [],
+            $validated['contract_id'] ?? null
         );
 
         ActivityService::log(
@@ -71,6 +73,7 @@ class PaymentController extends Controller
             'reference' => 'nullable|string|unique:payments,reference,' . $payment->id,
             'payment_date' => 'nullable|date',
             'note' => 'nullable|string|max:500',
+            'contract_id' => 'nullable|exists:contracts,id',
         ]);
 
         $oldAmount = (float) $payment->amount;
@@ -94,12 +97,17 @@ class PaymentController extends Controller
             'note' => $validated['note'] ?? $payment->note,
         ]);
 
-        // Re-allocate with new amount
+        // Re-allocate with new amount, scoped to contract if provided
         $remaining = $newAmount;
-        $schedules = $investor->payoutSchedules()
+        $query = $investor->payoutSchedules()
             ->whereIn('status', ['overdue', 'partially_paid', 'pending'])
-            ->orderBy('due_date')
-            ->get();
+            ->orderBy('due_date');
+
+        if (!empty($validated['contract_id'])) {
+            $query->where('contract_id', $validated['contract_id']);
+        }
+
+        $schedules = $query->get();
 
         foreach ($schedules as $schedule) {
             if ($remaining <= 0) break;
@@ -171,21 +179,40 @@ class PaymentController extends Controller
         }
     }
 
-    public function summary(Investor $investor): JsonResponse
+    public function summary(Request $request, Investor $investor): JsonResponse
     {
-        $overdue = $investor->payoutSchedules()
+        $contractId = $request->input('contract_id');
+
+        $overdueQuery = $investor->payoutSchedules()
             ->whereIn('status', ['overdue', 'partially_paid'])
             ->where('due_date', '<', now()->startOfDay())
-            ->orderBy('due_date')
-            ->get();
+            ->orderBy('due_date');
 
-        $currentDue = $investor->payoutSchedules()
+        $currentDueQuery = $investor->payoutSchedules()
             ->whereIn('status', ['pending', 'partially_paid'])
             ->where('due_date', '>=', now()->startOfMonth())
-            ->where('due_date', '<=', now()->endOfMonth())
-            ->first();
+            ->where('due_date', '<=', now()->endOfMonth());
 
+        if ($contractId) {
+            $overdueQuery->where('contract_id', $contractId);
+            $currentDueQuery->where('contract_id', $contractId);
+        }
+
+        $overdue = $overdueQuery->get();
+        $currentDue = $currentDueQuery->first();
         $totalOverdue = $overdue->sum(fn ($s) => (float) $s->expected_amount - (float) $s->paid_amount);
+
+        if ($contractId) {
+            $contract = \App\Models\Contract::find($contractId);
+            return response()->json([
+                'overdue_entries' => $overdue,
+                'current_due' => $currentDue,
+                'total_overdue' => $totalOverdue,
+                'total_invested' => (float) ($contract->total_invested ?? 0),
+                'interest_rate' => (float) ($contract->interest_rate ?? 0),
+                'monthly_payout' => (float) ($contract->monthly_payout ?? 0),
+            ]);
+        }
 
         return response()->json([
             'overdue_entries' => $overdue,
