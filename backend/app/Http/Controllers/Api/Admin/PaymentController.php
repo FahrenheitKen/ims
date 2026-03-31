@@ -3,10 +3,12 @@
 namespace App\Http\Controllers\Api\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\Contract;
 use App\Models\Investor;
 use App\Models\Payment;
 use App\Models\PayoutSchedule;
 use App\Services\ActivityService;
+use App\Services\InvestmentService;
 use App\Services\PayoutService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -28,7 +30,7 @@ class PaymentController extends Controller
     public function store(Request $request, Investor $investor): JsonResponse
     {
         $validated = $request->validate([
-            'amount' => 'required|numeric|min:0.01',
+            'amount' => 'required|numeric|min:1',
             'method' => 'required|in:mpesa,cheque,cash,bank_transfer',
             'reference' => 'nullable|string|unique:payments,reference',
             'payment_date' => 'nullable|date',
@@ -58,6 +60,14 @@ class PaymentController extends Controller
             "Payment of {$validated['amount']} via {$validated['method']}. Ref: {$reference}"
         );
 
+        // Auto-complete contract if all payouts are now paid and end date reached
+        if (!empty($validated['contract_id'])) {
+            $contract = Contract::find($validated['contract_id']);
+            if ($contract) {
+                InvestmentService::autoCompleteContract($contract);
+            }
+        }
+
         return response()->json($payment->load('allocations.payoutSchedule'), 201);
     }
 
@@ -68,7 +78,7 @@ class PaymentController extends Controller
         }
 
         $validated = $request->validate([
-            'amount' => 'required|numeric|min:0.01',
+            'amount' => 'required|numeric|min:1',
             'method' => 'required|in:mpesa,cheque,cash,bank_transfer',
             'reference' => 'nullable|string|unique:payments,reference,' . $payment->id,
             'payment_date' => 'nullable|date',
@@ -134,6 +144,14 @@ class PaymentController extends Controller
             "Payment updated from {$oldAmount} to {$newAmount}. Ref: {$payment->reference}"
         );
 
+        // Auto-complete contract if all payouts are now paid and end date reached
+        if (!empty($validated['contract_id'])) {
+            $contract = Contract::find($validated['contract_id']);
+            if ($contract) {
+                InvestmentService::autoCompleteContract($contract);
+            }
+        }
+
         return response()->json($payment->fresh()->load('allocations.payoutSchedule'));
     }
 
@@ -172,8 +190,9 @@ class PaymentController extends Controller
 
         if ($paid <= 0) {
             $schedule->status = $schedule->due_date->isPast() ? 'overdue' : 'pending';
-        } elseif ($paid >= $expected) {
+        } elseif ($paid >= $expected || abs($paid - $expected) < 0.01) {
             $schedule->status = $schedule->due_date->isFuture() ? 'paid_in_advance' : 'paid';
+            $schedule->paid_amount = $expected;
         } else {
             $schedule->status = 'partially_paid';
         }

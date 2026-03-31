@@ -10,18 +10,12 @@ import {
   CheckCircleFilled,
 } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
-import { investorRegister } from '../../api/investor';
+import { useQuery } from '@tanstack/react-query';
+import { investorRegister, getPublicInvestmentPackages } from '../../api/investor';
 
 const { Title, Text, Paragraph } = Typography;
 
 const formatKES = (n: number) => 'KES ' + n.toLocaleString('en-KE', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
-
-const getRate = (amount: number) => {
-  if (amount >= 500000) return 0.25;
-  if (amount >= 150000) return 0.2308;
-  if (amount >= 50000) return 0.175;
-  return 0;
-};
 
 const RegisterPage: React.FC = () => {
   const navigate = useNavigate();
@@ -31,16 +25,44 @@ const RegisterPage: React.FC = () => {
   const [success, setSuccess] = useState(false);
   const [investAmount, setInvestAmount] = useState<number>(0);
   const [showTerms, setShowTerms] = useState(false);
+  const [payoutMethod, setPayoutMethod] = useState<string | undefined>(undefined);
+
+  const { data: rawPackages } = useQuery({
+    queryKey: ['public-investment-packages'],
+    queryFn: () => getPublicInvestmentPackages().then(r => r.data),
+    staleTime: 5 * 60 * 1000,
+  });
+
+  const activePackages: Array<{ min_amount: number; max_amount: number | null; interest_rate: number }> =
+    Array.isArray(rawPackages)
+      ? rawPackages.filter((p: any) => p.is_active).sort((a: any, b: any) => a.min_amount - b.min_amount)
+      : [];
+
+  const getRate = (amount: number): number => {
+    if (activePackages.length > 0) {
+      const sorted = [...activePackages].sort((a, b) => b.min_amount - a.min_amount);
+      const match = sorted.find(p => amount >= p.min_amount && (p.max_amount == null || amount <= p.max_amount));
+      if (match) return Number(match.interest_rate);
+      // below minimum package — no rate
+      return 0;
+    }
+    // fallback hardcoded tiers
+    if (amount >= 500000) return 0.25;
+    if (amount >= 150000) return 0.2308;
+    if (amount >= 50000) return 0.175;
+    return 0;
+  };
 
   const rate = getRate(investAmount);
-  const monthlyPayout = investAmount * rate;
+  const totalInterest = investAmount * rate * 12;
+  const monthlyPayout = investAmount > 0 ? (investAmount + totalInterest) / 12 : 0;
   const totalPayout = monthlyPayout * 12;
 
   const fieldsByStep: string[][] = [
     ['prefix', 'first_name', 'second_name', 'last_name', 'id_number', 'email'],
     ['phone', 'other_phone', 'address', 'city', 'country'],
     ['next_of_kin_name', 'next_of_kin_phone', 'next_of_kin_relationship'],
-    ['bank_name', 'bank_account', 'bank_branch', 'tax_id'],
+    ['payout_method', ...(payoutMethod === 'mpesa' ? ['mpesa_phone'] : payoutMethod === 'bank' ? ['bank_name', 'bank_account', 'bank_branch'] : []), 'tax_id'],
     ['initial_amount', 'terms'],
   ];
 
@@ -81,7 +103,7 @@ const RegisterPage: React.FC = () => {
             title={<span style={{ fontWeight: 700, color: '#1a1a2e' }}>Registration Successful!</span>}
             subTitle={
               <Paragraph style={{ color: '#64748b', fontSize: 15, lineHeight: 1.7, maxWidth: 400, margin: '0 auto' }}>
-                Your account has been created and is pending admin approval. You will receive an email with your login details once your account is approved.
+                Your account has been created and is pending approval. You will receive an email with your login details once your account is approved.
               </Paragraph>
             }
             extra={
@@ -243,8 +265,31 @@ const RegisterPage: React.FC = () => {
               <Form.Item name="phone" label="Phone Number" rules={[{ required: true, message: 'Required' }]}><Input /></Form.Item>
               <Form.Item name="other_phone" label="Other Phone"><Input /></Form.Item>
               <Form.Item name="address" label="Address" rules={[{ required: true, message: 'Required' }]}><Input /></Form.Item>
-              <Form.Item name="city" label="City" rules={[{ required: true, message: 'Required' }]}><Input /></Form.Item>
-              <Form.Item name="country" label="Country" rules={[{ required: true, message: 'Required' }]}><Input /></Form.Item>
+              <Form.Item name="city" label="County" rules={[{ required: true, message: 'Required' }]}>
+                <Select
+                  showSearch
+                  placeholder="Search and select county"
+                  optionFilterProp="label"
+                  filterOption={(input, option) =>
+                    (option?.label as string).toLowerCase().includes(input.toLowerCase())
+                  }
+                  options={[
+                    'Baringo', 'Bomet', 'Bungoma', 'Busia', 'Elgeyo-Marakwet',
+                    'Embu', 'Garissa', 'Homa Bay', 'Isiolo', 'Kajiado',
+                    'Kakamega', 'Kericho', 'Kiambu', 'Kilifi', 'Kirinyaga',
+                    'Kisii', 'Kisumu', 'Kitui', 'Kwale', 'Laikipia',
+                    'Lamu', 'Machakos', 'Makueni', 'Mandera', 'Marsabit',
+                    'Meru', 'Migori', 'Mombasa', 'Murang\'a', 'Nairobi',
+                    'Nakuru', 'Nandi', 'Narok', 'Nyamira', 'Nyandarua',
+                    'Nyeri', 'Samburu', 'Siaya', 'Taita-Taveta', 'Tana River',
+                    'Tharaka-Nithi', 'Trans-Nzoia', 'Turkana', 'Uasin Gishu',
+                    'Vihiga', 'Wajir', 'West Pokot',
+                  ].map(c => ({ value: c, label: c }))}
+                />
+              </Form.Item>
+              <Form.Item name="country" label="Country" initialValue="Kenya" rules={[{ required: true, message: 'Required' }]}>
+                <Input disabled />
+              </Form.Item>
             </div>
 
             {/* Step 2: Next of Kin */}
@@ -264,12 +309,42 @@ const RegisterPage: React.FC = () => {
               </Form.Item>
             </div>
 
-            {/* Step 3: Banking */}
-            <div className="reg-form-grid" style={{ display: currentStep === 3 ? 'grid' : 'none', gridTemplateColumns: '1fr 1fr', gap: '0 16px' }}>
-              <Form.Item name="bank_name" label="Bank Name"><Input /></Form.Item>
-              <Form.Item name="bank_account" label="Account Number"><Input /></Form.Item>
-              <Form.Item name="bank_branch" label="Branch"><Input /></Form.Item>
-              <Form.Item name="tax_id" label="Tax ID"><Input /></Form.Item>
+            {/* Step 3: Payout Method */}
+            <div style={{ display: currentStep === 3 ? 'block' : 'none' }}>
+              <Form.Item
+                name="payout_method"
+                label="How would you like to receive payout?"
+                rules={[{ required: true, message: 'Please select a payout method' }]}
+              >
+                <Select
+                  placeholder="Select payout method"
+                  onChange={(v: string) => setPayoutMethod(v)}
+                  options={[
+                    { value: 'mpesa', label: 'M-Pesa' },
+                    { value: 'bank', label: 'Bank' },
+                  ]}
+                />
+              </Form.Item>
+
+              <div className="reg-form-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0 16px' }}>
+                {payoutMethod === 'mpesa' && (
+                  <>
+                    <Form.Item name="mpesa_phone" label="M-Pesa Phone Number" rules={[{ required: true, message: 'Required' }]}>
+                      <Input placeholder="e.g. 0712345678" />
+                    </Form.Item>
+                    <Form.Item name="tax_id" label="Tax ID"><Input /></Form.Item>
+                  </>
+                )}
+
+                {payoutMethod === 'bank' && (
+                  <>
+                    <Form.Item name="bank_name" label="Bank Name" rules={[{ required: true, message: 'Required' }]}><Input /></Form.Item>
+                    <Form.Item name="bank_account" label="Account Number" rules={[{ required: true, message: 'Required' }]}><Input /></Form.Item>
+                    <Form.Item name="bank_branch" label="Branch" rules={[{ required: true, message: 'Required' }]}><Input /></Form.Item>
+                    <Form.Item name="tax_id" label="Tax ID"><Input /></Form.Item>
+                  </>
+                )}
+              </div>
             </div>
 
             {/* Step 4: Investment */}
@@ -436,6 +511,20 @@ const RegisterPage: React.FC = () => {
           .reg-form-grid { grid-template-columns: 1fr !important; }
           .reg-payout-grid { grid-template-columns: 1fr !important; }
           .reg-payment-grid { grid-template-columns: 1fr !important; }
+        }
+        @media (max-width: 576px) {
+          .register-container > div:nth-child(2) { padding: 16px 12px !important; }
+          .register-container .ant-steps-item-title { display: none !important; }
+          .register-container .ant-steps-item-description { display: none !important; }
+        }
+        @media (max-width: 480px) {
+          .register-container > div:nth-child(2) { padding: 12px 8px !important; align-items: flex-start !important; }
+        }
+        @media (max-width: 360px) {
+          .register-container > div:nth-child(2) { padding: 8px 6px !important; }
+          .register-container h3.ant-typography { font-size: 18px !important; }
+          .reg-payment-grid > div { padding: 10px 12px !important; }
+          .reg-payment-grid > div > div:last-child { font-size: 18px !important; }
         }
       `}</style>
 

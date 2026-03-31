@@ -5,9 +5,9 @@ import { UploadOutlined, PlusOutlined, FilePdfOutlined, EditOutlined, DeleteOutl
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { getInvestor, getStatement, getPayments, getDocuments, getActivities, updatePayment, deletePayment, uploadDocument, deleteDocument, renewContract, updateInvestor, getInvestorReferrals, getInvestorContracts, createContract } from '../../api/admin';
+import { getInvestor, getStatement, getPayments, getDocuments, getActivities, updatePayment, deletePayment, uploadDocument, deleteDocument, renewContract, updateInvestor, getInvestorReferrals, getInvestorContracts, createContract, getTopupRequests, approveTopupRequest, rejectTopupRequest, getNewContractRequests, approveNewContractRequest, rejectNewContractRequest } from '../../api/admin';
 import { formatCurrency, formatDate, formatDateTime, formatRate } from '../../utils/format';
-import type { PaymentAllocation, Document as DocType, Activity, Contract } from '../../types';
+import type { PaymentAllocation, Document as DocType, Activity, Contract, ContractTopupRequest, NewContractRequest } from '../../types';
 import dayjs from 'dayjs';
 
 const { Title, Text } = Typography;
@@ -73,6 +73,68 @@ const InvestorDetailPage: React.FC = () => {
     queryKey: ['investor-contracts', investorId],
     queryFn: () => getInvestorContracts(investorId).then(r => r.data),
     enabled: activeTab === 'contracts',
+  });
+
+  const { data: topupRequestsData } = useQuery({
+    queryKey: ['investor-topup-requests-admin', investorId],
+    queryFn: () => getTopupRequests({ investor_id: investorId }).then(r => r.data),
+    enabled: activeTab === 'contracts',
+  });
+
+  const { data: newContractRequestsData } = useQuery({
+    queryKey: ['investor-new-contract-requests-admin', investorId],
+    queryFn: () => getNewContractRequests({ investor_id: investorId }).then(r => r.data),
+    enabled: activeTab === 'contracts',
+  });
+
+  const [rejectModal, setRejectModal] = useState<{ open: boolean; request: ContractTopupRequest | null; note: string }>({
+    open: false, request: null, note: '',
+  });
+
+  const [rejectNewContractModal, setRejectNewContractModal] = useState<{ open: boolean; request: NewContractRequest | null; note: string }>({
+    open: false, request: null, note: '',
+  });
+
+  const approveTopupMutation = useMutation({
+    mutationFn: (id: number) => approveTopupRequest(id),
+    onSuccess: () => {
+      message.success('Top-up approved and applied');
+      queryClient.invalidateQueries({ queryKey: ['investor-topup-requests-admin', investorId] });
+      queryClient.invalidateQueries({ queryKey: ['investor-contracts', investorId] });
+      queryClient.invalidateQueries({ queryKey: ['investor', investorId] });
+    },
+    onError: (err: any) => message.error(err.response?.data?.message || 'Failed to approve'),
+  });
+
+  const rejectTopupMutation = useMutation({
+    mutationFn: ({ id, note }: { id: number; note: string }) => rejectTopupRequest(id, { admin_note: note }),
+    onSuccess: () => {
+      message.success('Top-up request rejected');
+      setRejectModal({ open: false, request: null, note: '' });
+      queryClient.invalidateQueries({ queryKey: ['investor-topup-requests-admin', investorId] });
+    },
+    onError: (err: any) => message.error(err.response?.data?.message || 'Failed to reject'),
+  });
+
+  const approveNewContractMutation = useMutation({
+    mutationFn: (id: number) => approveNewContractRequest(id),
+    onSuccess: () => {
+      message.success('New contract request approved and contract created');
+      queryClient.invalidateQueries({ queryKey: ['investor-new-contract-requests-admin', investorId] });
+      queryClient.invalidateQueries({ queryKey: ['investor-contracts', investorId] });
+      queryClient.invalidateQueries({ queryKey: ['investor', investorId] });
+    },
+    onError: (err: any) => message.error(err.response?.data?.message || 'Failed to approve'),
+  });
+
+  const rejectNewContractMutation = useMutation({
+    mutationFn: ({ id, note }: { id: number; note: string }) => rejectNewContractRequest(id, { admin_note: note }),
+    onSuccess: () => {
+      message.success('New contract request rejected');
+      setRejectNewContractModal({ open: false, request: null, note: '' });
+      queryClient.invalidateQueries({ queryKey: ['investor-new-contract-requests-admin', investorId] });
+    },
+    onError: (err: any) => message.error(err.response?.data?.message || 'Failed to reject'),
   });
 
   const newContractMutation = useMutation({
@@ -222,6 +284,21 @@ const InvestorDetailPage: React.FC = () => {
       });
     }
 
+    // Commissions
+    if (stmtData.commissions?.length) {
+      addSectionTitle('Commissions');
+      autoTable(doc, {
+        startY: y,
+        head: [['Referred Investor', 'Amount', 'Payment Date', 'Status']],
+        body: stmtData.commissions.map((c: any) => [
+          c.referred ? `${c.referred.first_name} ${c.referred.second_name}` : '-',
+          formatCurrency(c.commission_amount), formatDate(c.payment_date), c.status.toUpperCase(),
+        ]),
+        styles: { fontSize: 8 },
+        headStyles: { fillColor: blue },
+      });
+    }
+
     // Payout Schedule (with payments embedded)
     if (stmtData.schedules?.length) {
       addSectionTitle('Payout Schedule');
@@ -270,21 +347,6 @@ const InvestorDetailPage: React.FC = () => {
             data.cell.styles.fillColor = grey;
           }
         },
-      });
-    }
-
-    // Commissions
-    if (stmtData.commissions?.length) {
-      addSectionTitle('Commissions');
-      autoTable(doc, {
-        startY: y,
-        head: [['Referred Investor', 'Amount', 'Payment Date', 'Status']],
-        body: stmtData.commissions.map((c: any) => [
-          c.referred ? `${c.referred.first_name} ${c.referred.second_name}` : '-',
-          formatCurrency(c.commission_amount), formatDate(c.payment_date), c.status.toUpperCase(),
-        ]),
-        styles: { fontSize: 8 },
-        headStyles: { fillColor: blue },
       });
     }
 
@@ -466,6 +528,25 @@ const InvestorDetailPage: React.FC = () => {
                     </Card>
                   )}
 
+                  {/* Commissions */}
+                  {stmtData.commissions?.length > 0 && (
+                    <Card size="small" title="Commissions" style={{ marginBottom: 16 }}>
+                      <Table
+                        dataSource={stmtData.commissions}
+                        rowKey="id"
+                        pagination={false}
+                        size="small"
+                        scroll={{ x: 500 }}
+                        columns={[
+                          { title: 'Referred Investor', key: 'ref', render: (_: unknown, r: any) => r.referred ? `${r.referred.first_name} ${r.referred.second_name}` : '-' },
+                          { title: 'Amount', dataIndex: 'commission_amount', key: 'amt', render: (v: number) => <Text type="success" strong>{formatCurrency(v)}</Text> },
+                          { title: 'Payment Date', dataIndex: 'payment_date', key: 'dt', render: (v: string) => formatDate(v) },
+                          { title: 'Status', dataIndex: 'status', key: 'st', render: (s: string) => <Tag color={s === 'paid' ? 'green' : 'gold'}>{s.toUpperCase()}</Tag> },
+                        ]}
+                      />
+                    </Card>
+                  )}
+
                   {/* Payout Schedule (with payments embedded) */}
                   {stmtData.schedules?.length > 0 && (
                     <Card size="small" title="Payout Schedule" style={{ marginBottom: 16 }}>
@@ -533,25 +614,6 @@ const InvestorDetailPage: React.FC = () => {
                       />
                     </Card>
                   )}
-
-                  {/* Commissions */}
-                  {stmtData.commissions?.length > 0 && (
-                    <Card size="small" title="Commissions" style={{ marginBottom: 16 }}>
-                      <Table
-                        dataSource={stmtData.commissions}
-                        rowKey="id"
-                        pagination={false}
-                        size="small"
-                        scroll={{ x: 500 }}
-                        columns={[
-                          { title: 'Referred Investor', key: 'ref', render: (_: unknown, r: any) => r.referred ? `${r.referred.first_name} ${r.referred.second_name}` : '-' },
-                          { title: 'Amount', dataIndex: 'commission_amount', key: 'amt', render: (v: number) => <Text type="success" strong>{formatCurrency(v)}</Text> },
-                          { title: 'Payment Date', dataIndex: 'payment_date', key: 'dt', render: (v: string) => formatDate(v) },
-                          { title: 'Status', dataIndex: 'status', key: 'st', render: (s: string) => <Tag color={s === 'paid' ? 'green' : 'gold'}>{s.toUpperCase()}</Tag> },
-                        ]}
-                      />
-                    </Card>
-                  )}
                 </>
               ) : null}
             </>
@@ -598,6 +660,134 @@ const InvestorDetailPage: React.FC = () => {
                 scroll={{ x: 700 }}
                 locale={{ emptyText: 'No contracts yet' }}
               />
+
+              {topupRequestsData && topupRequestsData.length > 0 && (
+                <div style={{ marginTop: 24 }}>
+                  <Title level={5} style={{ marginBottom: 12 }}>Top-Up Requests</Title>
+                  <Table
+                    dataSource={topupRequestsData}
+                    rowKey="id"
+                    pagination={false}
+                    size="small"
+                    scroll={{ x: 700 }}
+                    columns={[
+                      { title: 'Date', dataIndex: 'created_at', key: 'created_at', render: (v: string) => formatDate(v) },
+                      { title: 'Contract', key: 'contract', render: (_: unknown, r: ContractTopupRequest) => r.contract?.contract_id || '-' },
+                      { title: 'Amount', dataIndex: 'amount', key: 'amount', render: (v: number) => formatCurrency(v) },
+                      { title: 'Note', dataIndex: 'note', key: 'note', render: (v: string) => v || '-' },
+                      {
+                        title: 'Status', dataIndex: 'status', key: 'status',
+                        render: (s: string) => <Tag color={s === 'approved' ? 'green' : s === 'rejected' ? 'red' : 'blue'}>{s.toUpperCase()}</Tag>,
+                      },
+                      { title: 'Admin Note', dataIndex: 'admin_note', key: 'admin_note', render: (v: string) => v || '-' },
+                      {
+                        title: 'Action', key: 'action', width: 160,
+                        render: (_: unknown, r: ContractTopupRequest) => r.status !== 'pending' ? null : (
+                          <Space>
+                            <Button
+                              type="primary"
+                              size="small"
+                              onClick={() => approveTopupMutation.mutate(r.id)}
+                              loading={approveTopupMutation.isPending}
+                            >
+                              Approve
+                            </Button>
+                            <Button
+                              danger
+                              size="small"
+                              onClick={() => setRejectModal({ open: true, request: r, note: '' })}
+                            >
+                              Reject
+                            </Button>
+                          </Space>
+                        ),
+                      },
+                    ]}
+                  />
+                </div>
+              )}
+
+              <Modal
+                open={rejectModal.open}
+                title="Reject Top-Up Request"
+                onCancel={() => setRejectModal({ open: false, request: null, note: '' })}
+                onOk={() => rejectTopupMutation.mutate({ id: rejectModal.request!.id, note: rejectModal.note })}
+                okText="Reject"
+                okButtonProps={{ danger: true }}
+                confirmLoading={rejectTopupMutation.isPending}
+              >
+                <p>Reject top-up of <strong>{formatCurrency(rejectModal.request?.amount ?? 0)}</strong>?</p>
+                <Input.TextArea
+                  rows={3}
+                  placeholder="Reason for rejection (optional)"
+                  value={rejectModal.note}
+                  onChange={e => setRejectModal(prev => ({ ...prev, note: e.target.value }))}
+                />
+              </Modal>
+
+              {newContractRequestsData && newContractRequestsData.length > 0 && (
+                <div style={{ marginTop: 24 }}>
+                  <Title level={5} style={{ marginBottom: 12 }}>New Contract Requests</Title>
+                  <Table
+                    dataSource={newContractRequestsData}
+                    rowKey="id"
+                    pagination={false}
+                    size="small"
+                    scroll={{ x: 700 }}
+                    columns={[
+                      { title: 'Date', dataIndex: 'created_at', key: 'created_at', render: (v: string) => formatDate(v) },
+                      { title: 'Amount', dataIndex: 'amount', key: 'amount', render: (v: number) => formatCurrency(v) },
+                      { title: 'Proposed Start', dataIndex: 'proposed_start_date', key: 'proposed_start_date', render: (v: string) => v ? formatDate(v) : '-' },
+                      { title: 'Note', dataIndex: 'note', key: 'note', render: (v: string) => v || '-' },
+                      {
+                        title: 'Status', dataIndex: 'status', key: 'status',
+                        render: (s: string) => <Tag color={s === 'approved' ? 'green' : s === 'rejected' ? 'red' : 'blue'}>{s.toUpperCase()}</Tag>,
+                      },
+                      { title: 'Admin Note', dataIndex: 'admin_note', key: 'admin_note', render: (v: string) => v || '-' },
+                      {
+                        title: 'Action', key: 'action', width: 160,
+                        render: (_: unknown, r: NewContractRequest) => r.status !== 'pending' ? null : (
+                          <Space>
+                            <Button
+                              type="primary"
+                              size="small"
+                              onClick={() => approveNewContractMutation.mutate(r.id)}
+                              loading={approveNewContractMutation.isPending}
+                            >
+                              Approve
+                            </Button>
+                            <Button
+                              danger
+                              size="small"
+                              onClick={() => setRejectNewContractModal({ open: true, request: r, note: '' })}
+                            >
+                              Reject
+                            </Button>
+                          </Space>
+                        ),
+                      },
+                    ]}
+                  />
+                </div>
+              )}
+
+              <Modal
+                open={rejectNewContractModal.open}
+                title="Reject New Contract Request"
+                onCancel={() => setRejectNewContractModal({ open: false, request: null, note: '' })}
+                onOk={() => rejectNewContractMutation.mutate({ id: rejectNewContractModal.request!.id, note: rejectNewContractModal.note })}
+                okText="Reject"
+                okButtonProps={{ danger: true }}
+                confirmLoading={rejectNewContractMutation.isPending}
+              >
+                <p>Reject new contract request for <strong>{formatCurrency(rejectNewContractModal.request?.amount ?? 0)}</strong>?</p>
+                <Input.TextArea
+                  rows={3}
+                  placeholder="Reason for rejection (optional)"
+                  value={rejectNewContractModal.note}
+                  onChange={e => setRejectNewContractModal(prev => ({ ...prev, note: e.target.value }))}
+                />
+              </Modal>
             </>
           ),
         },

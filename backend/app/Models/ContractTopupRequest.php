@@ -5,15 +5,18 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
-class InvestmentTransaction extends Model
+class ContractTopupRequest extends Model
 {
-    protected $fillable = ['investor_id', 'contract_id', 'type', 'amount', 'date', 'note'];
+    protected $fillable = [
+        'investor_id', 'contract_id', 'amount', 'note',
+        'status', 'admin_note', 'reviewed_by', 'reviewed_at',
+    ];
 
     protected function casts(): array
     {
         return [
             'amount' => 'decimal:0',
-            'date' => 'date',
+            'reviewed_at' => 'datetime',
         ];
     }
 
@@ -24,6 +27,11 @@ class InvestmentTransaction extends Model
 
     public function contract(): BelongsTo
     {
-        return $this->belongsTo(\App\Models\Contract::class);
+        return $this->belongsTo(Contract::class);
+    }
+
+    public function reviewer(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'reviewed_by');
     }
 }

@@ -12,6 +12,20 @@ class InvestmentService
 {
     public static function getInterestRate(float $totalInvested): float
     {
+        $package = \App\Models\InvestmentPackage::where('is_active', true)
+            ->where('min_amount', '<=', $totalInvested)
+            ->where(function ($q) use ($totalInvested) {
+                $q->whereNull('max_amount')
+                  ->orWhere('max_amount', '>=', $totalInvested);
+            })
+            ->orderBy('min_amount', 'desc')
+            ->first();
+
+        if ($package) {
+            return (float) $package->interest_rate;
+        }
+
+        // Fallback if no packages configured
         if ($totalInvested >= 500000) return 0.25;
         if ($totalInvested >= 150000) return 0.2308;
         return 0.175;
@@ -19,7 +33,8 @@ class InvestmentService
 
     public static function calculateMonthlyPayout(float $totalInvested, float $rate): float
     {
-        return round($totalInvested * $rate, 2);
+        $totalInterest = $totalInvested * $rate * 12;
+        return round(($totalInvested + $totalInterest) / 12);
     }
 
     public static function generateInvestorId(): string
@@ -204,5 +219,58 @@ class InvestmentService
             'total_invested' => $totalInvested,
             'monthly_payout' => $totalMonthlyPayout,
         ]);
+    }
+
+    /**
+     * Check a single active contract and mark it completed if:
+     * - Its end_date has been reached, AND
+     * - All payout schedules are fully paid (status = paid or paid_in_advance)
+     */
+    public static function autoCompleteContract(Contract $contract): bool
+    {
+        if ($contract->status !== 'active') {
+            return false;
+        }
+
+        $endDateReached = $contract->end_date->lte(now()->startOfDay());
+        if (!$endDateReached) {
+            return false;
+        }
+
+        $total = $contract->payoutSchedules()->count();
+        if ($total === 0) {
+            return false;
+        }
+
+        $unpaid = $contract->payoutSchedules()
+            ->whereNotIn('status', ['paid', 'paid_in_advance'])
+            ->count();
+
+        if ($unpaid > 0) {
+            return false;
+        }
+
+        $contract->update(['status' => 'completed']);
+        return true;
+    }
+
+    /**
+     * Batch-check all active contracts whose end_date has passed and complete eligible ones.
+     * Returns the count of contracts marked completed.
+     */
+    public static function autoCompleteAllContracts(): int
+    {
+        $count = 0;
+
+        Contract::where('status', 'active')
+            ->where('end_date', '<=', now()->toDateString())
+            ->with('payoutSchedules:id,contract_id,status')
+            ->each(function (Contract $contract) use (&$count) {
+                if (self::autoCompleteContract($contract)) {
+                    $count++;
+                }
+            });
+
+        return $count;
     }
 }

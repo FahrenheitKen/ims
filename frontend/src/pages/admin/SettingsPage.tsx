@@ -1,16 +1,18 @@
 import React, { useState, useEffect } from 'react';
-import { Card, Form, Input, Button, Upload, message, Typography, Avatar, Spin } from 'antd';
-import { SettingOutlined, UploadOutlined, DeleteOutlined, WhatsAppOutlined } from '@ant-design/icons';
-import { updateSettings } from '../../api/admin';
+import { Card, Form, Input, Button, Upload, message, Typography, Avatar, Spin, InputNumber } from 'antd';
+import { SettingOutlined, UploadOutlined, DeleteOutlined, WhatsAppOutlined, GiftOutlined } from '@ant-design/icons';
+import { updateSettings, updateCommissionSettings } from '../../api/admin';
 import { useSettings } from '../../contexts/SettingsContext';
 import type { UploadFile } from 'antd/es/upload/interface';
 
 const { Title, Text } = Typography;
 
 const SettingsPage: React.FC = () => {
-  const { appName, logoUrl, whatsappNumber, loading, refresh } = useSettings();
+  const { appName, logoUrl, whatsappNumber, commissionRate, loading, refresh } = useSettings();
   const [form] = Form.useForm();
+  const [commissionForm] = Form.useForm();
   const [saving, setSaving] = useState(false);
+  const [savingCommission, setSavingCommission] = useState(false);
   const [fileList, setFileList] = useState<UploadFile[]>([]);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [removeLogo, setRemoveLogo] = useState(false);
@@ -21,6 +23,10 @@ const SettingsPage: React.FC = () => {
     setRemoveLogo(false);
     setFileList([]);
   }, [appName, logoUrl, whatsappNumber, form]);
+
+  useEffect(() => {
+    commissionForm.setFieldsValue({ commission_rate: commissionRate });
+  }, [commissionRate, commissionForm]);
 
   const handleSave = async () => {
     try {
@@ -53,10 +59,24 @@ const SettingsPage: React.FC = () => {
     setFileList([]);
   };
 
+  const handleSaveCommission = async () => {
+    try {
+      const values = await commissionForm.validateFields();
+      setSavingCommission(true);
+      await updateCommissionSettings(values.commission_rate);
+      message.success('Commission rate updated. Applies to future commissions only.');
+      await refresh();
+    } catch {
+      message.error('Failed to update commission rate');
+    } finally {
+      setSavingCommission(false);
+    }
+  };
+
   if (loading) return <Spin size="large" style={{ display: 'flex', justifyContent: 'center', marginTop: 100 }} />;
 
   return (
-    <div style={{ maxWidth: 720, margin: '0 auto' }}>
+    <div style={{ maxWidth: 720, margin: '0 auto', padding: '0 4px' }}>
       <div style={{ marginBottom: 28 }}>
         <Title level={3} style={{ margin: 0, fontWeight: 700 }}>Settings</Title>
         <Text type="secondary" style={{ fontSize: 13 }}>Manage your application settings</Text>
@@ -176,6 +196,58 @@ const SettingsPage: React.FC = () => {
             style={{ borderRadius: 8, marginTop: 8 }}
           >
             Save Settings
+          </Button>
+        </Form>
+      </Card>
+
+      {/* Commission Settings */}
+      <Card
+        style={{ borderRadius: 16, boxShadow: '0 1px 4px rgba(0,0,0,0.06)', marginTop: 24 }}
+        styles={{ header: { borderBottom: '1px solid #f1f5f9', padding: '20px 24px' }, body: { padding: 24 } }}
+        title={
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <div style={{ width: 40, height: 40, borderRadius: 12, background: '#fef3c7', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#d97706', fontSize: 18 }}>
+              <GiftOutlined />
+            </div>
+            <div>
+              <Text strong style={{ fontSize: 16 }}>Commission Settings</Text>
+              <br />
+              <Text type="secondary" style={{ fontSize: 12 }}>Referral commission rate for approved investors</Text>
+            </div>
+          </div>
+        }
+      >
+        <div style={{ background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 10, padding: '12px 16px', marginBottom: 20, fontSize: 13, color: '#92400e', lineHeight: 1.6 }}>
+          Changes to the commission rate only apply to <strong>future commissions</strong>. Existing pending or paid commissions are not affected.
+        </div>
+        <Form form={commissionForm} layout="vertical" style={{ maxWidth: 360 }}>
+          <Form.Item
+            name="commission_rate"
+            label={<Text strong>Commission Rate (%)</Text>}
+            rules={[
+              { required: true, message: 'Commission rate is required' },
+              { type: 'number', min: 0, max: 100, message: 'Must be between 0 and 100' },
+            ]}
+            extra="Percentage of the referred investor's total annual payout. e.g. 1 = 1%"
+          >
+            <InputNumber
+              size="large"
+              min={0}
+              max={100}
+              step={0.5}
+              precision={2}
+              addonAfter="%"
+              style={{ width: '100%' }}
+            />
+          </Form.Item>
+          <Button
+            type="primary"
+            size="large"
+            onClick={handleSaveCommission}
+            loading={savingCommission}
+            style={{ borderRadius: 8, marginTop: 8 }}
+          >
+            Save Commission Rate
           </Button>
         </Form>
       </Card>

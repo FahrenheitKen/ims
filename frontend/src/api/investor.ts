@@ -28,3 +28,13 @@ export const getInvestorDocuments = () => apiClient.get('/investor/documents');
 export const getInvestorReferrals = () => apiClient.get('/investor/referrals');
 export const getInvestorPortalContracts = () => apiClient.get('/investor/contracts');
 export const getInvestorPortalContract = (id: number) => apiClient.get(`/investor/contracts/${id}`);
+export const requestContractTopup = (contractId: number, data: { amount: number; note?: string }) =>
+  apiClient.post(`/investor/contracts/${contractId}/topup-request`, data);
+export const getMyTopupRequests = () => apiClient.get('/investor/topup-requests');
+
+export const requestNewContract = (data: { amount: number; note?: string }) =>
+  apiClient.post('/investor/new-contract-request', data);
+export const getMyNewContractRequests = () => apiClient.get('/investor/new-contract-requests');
+
+// Public (no auth)
+export const getPublicInvestmentPackages = () => apiClient.get('/investment-packages');

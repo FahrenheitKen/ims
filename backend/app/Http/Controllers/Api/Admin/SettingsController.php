@@ -18,6 +18,7 @@ class SettingsController extends Controller
             'app_name' => $settings['app_name'] ?? 'KAP IMS',
             'app_logo' => $settings['app_logo'] ?? null,
             'whatsapp_number' => $settings['whatsapp_number'] ?? null,
+            'commission_rate' => isset($settings['commission_rate']) ? (float) $settings['commission_rate'] : 1.0,
         ]);
     }
 
@@ -59,7 +60,22 @@ class SettingsController extends Controller
             'app_name' => $settings['app_name'] ?? 'KAP IMS',
             'app_logo' => $settings['app_logo'] ?? null,
             'whatsapp_number' => $settings['whatsapp_number'] ?? null,
+            'commission_rate' => isset($settings['commission_rate']) ? (float) $settings['commission_rate'] : 1.0,
             'message' => 'Settings updated successfully',
+        ]);
+    }
+
+    public function updateCommission(Request $request): JsonResponse
+    {
+        $request->validate([
+            'commission_rate' => 'required|numeric|min:0|max:100',
+        ]);
+
+        Setting::set('commission_rate', (string) $request->input('commission_rate'));
+
+        return response()->json([
+            'commission_rate' => (float) $request->input('commission_rate'),
+            'message' => 'Commission rate updated. This will apply to future commissions only.',
         ]);
     }
 }

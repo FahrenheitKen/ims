@@ -195,7 +195,7 @@ const InvestorsPage: React.FC = () => {
 
   return (
     <div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, flexWrap: 'wrap', gap: 12 }}>
+      <div className="investors-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, flexWrap: 'wrap', gap: 12 }}>
         <Title level={3} style={{ margin: 0 }}>Investors</Title>
         <Space wrap>
           <Input placeholder="Search..." prefix={<SearchOutlined />} value={search} onChange={e => { setSearch(e.target.value); setPage(1); }} allowClear style={{ width: 200 }} />
@@ -293,7 +293,7 @@ const InvestorsPage: React.FC = () => {
           createMutation.mutate(values);
         }}>
           {/* Step 0: Personal Details */}
-          <div style={{ display: currentStep === 0 ? 'grid' : 'none', gridTemplateColumns: '1fr 1fr', gap: '0 16px' }}>
+          <div className="add-investor-grid" style={{ display: currentStep === 0 ? 'grid' : 'none', gridTemplateColumns: '1fr 1fr', gap: '0 16px' }}>
             <Form.Item name="prefix" label="Prefix"><Input placeholder="Mr / Mrs / Dr" /></Form.Item>
             <Form.Item name="first_name" label="First Name" rules={[{ required: true }]}><Input /></Form.Item>
             <Form.Item name="second_name" label="Second Name" rules={[{ required: true }]}><Input /></Form.Item>
@@ -303,16 +303,39 @@ const InvestorsPage: React.FC = () => {
           </div>
 
           {/* Step 1: Contacts */}
-          <div style={{ display: currentStep === 1 ? 'grid' : 'none', gridTemplateColumns: '1fr 1fr', gap: '0 16px' }}>
+          <div className="add-investor-grid" style={{ display: currentStep === 1 ? 'grid' : 'none', gridTemplateColumns: '1fr 1fr', gap: '0 16px' }}>
             <Form.Item name="phone" label="Phone Number" rules={[{ required: true }]}><Input /></Form.Item>
             <Form.Item name="other_phone" label="Other Phone"><Input /></Form.Item>
             <Form.Item name="address" label="Address" rules={[{ required: true }]}><Input /></Form.Item>
-            <Form.Item name="city" label="City" rules={[{ required: true }]}><Input /></Form.Item>
-            <Form.Item name="country" label="Country" rules={[{ required: true }]}><Input /></Form.Item>
+            <Form.Item name="city" label="County" rules={[{ required: true }]}>
+              <Select
+                showSearch
+                placeholder="Search and select county"
+                optionFilterProp="label"
+                filterOption={(input, option) =>
+                  (option?.label as string).toLowerCase().includes(input.toLowerCase())
+                }
+                options={[
+                  'Baringo', 'Bomet', 'Bungoma', 'Busia', 'Elgeyo-Marakwet',
+                  'Embu', 'Garissa', 'Homa Bay', 'Isiolo', 'Kajiado',
+                  'Kakamega', 'Kericho', 'Kiambu', 'Kilifi', 'Kirinyaga',
+                  'Kisii', 'Kisumu', 'Kitui', 'Kwale', 'Laikipia',
+                  'Lamu', 'Machakos', 'Makueni', 'Mandera', 'Marsabit',
+                  'Meru', 'Migori', 'Mombasa', 'Murang\'a', 'Nairobi',
+                  'Nakuru', 'Nandi', 'Narok', 'Nyamira', 'Nyandarua',
+                  'Nyeri', 'Samburu', 'Siaya', 'Taita-Taveta', 'Tana River',
+                  'Tharaka-Nithi', 'Trans-Nzoia', 'Turkana', 'Uasin Gishu',
+                  'Vihiga', 'Wajir', 'West Pokot',
+                ].map(c => ({ value: c, label: c }))}
+              />
+            </Form.Item>
+            <Form.Item name="country" label="Country" initialValue="Kenya" rules={[{ required: true }]}>
+              <Input disabled />
+            </Form.Item>
           </div>
 
           {/* Step 2: Next of Kin */}
-          <div style={{ display: currentStep === 2 ? 'grid' : 'none', gridTemplateColumns: '1fr 1fr', gap: '0 16px' }}>
+          <div className="add-investor-grid" style={{ display: currentStep === 2 ? 'grid' : 'none', gridTemplateColumns: '1fr 1fr', gap: '0 16px' }}>
             <Form.Item name="next_of_kin_name" label="Full Name"><Input placeholder="Next of kin full name" /></Form.Item>
             <Form.Item name="next_of_kin_phone" label="Phone Number"><Input placeholder="Next of kin phone" /></Form.Item>
             <Form.Item name="next_of_kin_relationship" label="Relationship" style={{ gridColumn: '1 / -1' }}>
@@ -329,7 +352,7 @@ const InvestorsPage: React.FC = () => {
           </div>
 
           {/* Step 3: Banking */}
-          <div style={{ display: currentStep === 3 ? 'grid' : 'none', gridTemplateColumns: '1fr 1fr', gap: '0 16px' }}>
+          <div className="add-investor-grid" style={{ display: currentStep === 3 ? 'grid' : 'none', gridTemplateColumns: '1fr 1fr', gap: '0 16px' }}>
             <Form.Item name="bank_name" label="Bank Name"><Input /></Form.Item>
             <Form.Item name="bank_account" label="Account Number"><Input /></Form.Item>
             <Form.Item name="bank_branch" label="Branch"><Input /></Form.Item>
@@ -343,6 +366,32 @@ const InvestorsPage: React.FC = () => {
           </div>
         )}
       </Modal>
+
+      <style>{`
+        @media (max-width: 768px) {
+          .investors-header {
+            flex-direction: column !important;
+            align-items: stretch !important;
+          }
+          .investors-header .ant-space {
+            flex-wrap: wrap !important;
+          }
+          .investors-header .ant-input-affix-wrapper,
+          .investors-header .ant-select {
+            width: 100% !important;
+            min-width: 0 !important;
+          }
+          .investors-header .ant-space-item {
+            flex: 1 1 auto !important;
+            min-width: 120px !important;
+          }
+        }
+        @media (max-width: 576px) {
+          .add-investor-grid { grid-template-columns: 1fr !important; }
+          .ant-steps-item-title { font-size: 12px !important; }
+          .ant-steps-item-icon { width: 24px !important; height: 24px !important; line-height: 24px !important; font-size: 12px !important; }
+        }
+      `}</style>
     </div>
   );
 };

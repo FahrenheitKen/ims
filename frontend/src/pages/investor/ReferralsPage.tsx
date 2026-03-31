@@ -102,11 +102,11 @@ const ReferralsPage: React.FC = () => {
                 Your Referral Code
               </Text>
             </div>
-            <div style={{ fontSize: 32, fontWeight: 800, color: '#fff', letterSpacing: 4, fontFamily: 'monospace' }}>
+            <div style={{ fontSize: 'clamp(20px, 5vw, 32px)', fontWeight: 800, color: '#fff', letterSpacing: 'clamp(2px, 1vw, 4px)', fontFamily: 'monospace', wordBreak: 'break-all' }}>
               {data?.referral_code || '--------'}
             </div>
             <Paragraph style={{ color: 'rgba(255,255,255,0.6)', fontSize: 13, marginTop: 8, marginBottom: 0 }}>
-              Share this code with friends. When they register and get approved, you earn 1% of their total annual payout as commission.
+              Share this code with friends. When they register and get approved, you earn a commission from their total annual payout.
             </Paragraph>
           </div>
           <Button

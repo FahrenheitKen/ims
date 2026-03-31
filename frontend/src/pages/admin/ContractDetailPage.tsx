@@ -198,8 +198,8 @@ const ContractDetailPage: React.FC = () => {
 
   return (
     <div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 16, flexWrap: 'wrap', gap: 12 }}>
-        <Space>
+      <div className="contract-header-actions" style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 16, flexWrap: 'wrap', gap: 12 }}>
+        <Space wrap>
           <Button icon={<ArrowLeftOutlined />} onClick={() => navigate('/admin/contracts')}>Back</Button>
           <Button icon={<UserOutlined />} onClick={() => navigate(`/admin/investors/${contract.investor_id}`)}>
             View Investor
@@ -208,7 +208,7 @@ const ContractDetailPage: React.FC = () => {
         <Space wrap>
           <Button icon={<FilePdfOutlined />} onClick={exportLedgerPdf}>Export Ledger PDF</Button>
           <Button icon={<PlusOutlined />} onClick={() => setTopUpModal(true)}>Top Up</Button>
-          <Button type="primary" icon={<DollarOutlined />} onClick={() => setPayModal(true)}>Record Payment</Button>
+          <Button type="primary" icon={<DollarOutlined />} onClick={() => { payForm.setFieldValue('payment_date', dayjs()); setPayModal(true); }}>Record Payment</Button>
         </Space>
       </div>
 
@@ -243,7 +243,7 @@ const ContractDetailPage: React.FC = () => {
         </Descriptions>
       </Card>
 
-      <Card title="Payout Schedule">
+      <Card title="Payout Schedule" style={{ marginTop: 16 }}>
         <Table
           columns={columns}
           dataSource={schedules}
@@ -304,7 +304,7 @@ const ContractDetailPage: React.FC = () => {
         </div>
 
         <div style={{ padding: '24px 28px 20px' }}>
-          <Form form={payForm} layout="vertical" onFinish={(values) => {
+          <Form form={payForm} layout="vertical" initialValues={{ payment_date: dayjs() }} onFinish={(values) => {
             payMutation.mutate({ ...values, payment_date: values.payment_date?.format('YYYY-MM-DD HH:mm:ss') });
           }} requiredMark={false}>
             <div className="pay-modal-form-row" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0 16px' }}>
@@ -319,7 +319,7 @@ const ContractDetailPage: React.FC = () => {
                 />
               </Form.Item>
               <Form.Item name="payment_date" label={<Text strong style={{ fontSize: 13 }}>Payment Date</Text>} rules={[{ required: true, message: 'Select date' }]}>
-                <DatePicker showTime style={{ width: '100%' }} size="large" />
+                <DatePicker showTime style={{ width: '100%' }} size="large" defaultValue={dayjs()} />
               </Form.Item>
             </div>
             <div className="pay-modal-form-row" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0 16px' }}>
@@ -366,6 +366,15 @@ const ContractDetailPage: React.FC = () => {
       </Modal>
 
       <style>{`
+        @media (max-width: 768px) {
+          .contract-header-actions {
+            flex-direction: column !important;
+            align-items: stretch !important;
+          }
+          .contract-header-actions .ant-space {
+            flex-wrap: wrap !important;
+          }
+        }
         @media (max-width: 576px) {
           .pay-modal-summary { grid-template-columns: 1fr !important; gap: 8px !important; }
           .pay-modal-form-row { grid-template-columns: 1fr !important; }

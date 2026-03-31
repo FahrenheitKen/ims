@@ -85,6 +85,40 @@ const dashboardStyles = `
     transform: scale(1.05);
     box-shadow: 0 2px 8px rgba(0,0,0,0.1);
   }
+  @media (max-width: 768px) {
+    .dashboard-header-controls {
+      flex-direction: column;
+      align-items: stretch !important;
+      width: 100%;
+    }
+    .dashboard-header-controls .ant-select {
+      width: 100% !important;
+    }
+    .dashboard-calendar .ant-picker-cell .ant-picker-cell-inner {
+      min-height: 40px !important;
+      padding: 2px 3px !important;
+    }
+    .cal-payout-badge {
+      padding: 1px 3px !important;
+    }
+    .cal-payout-badge > div:first-child {
+      font-size: 9px !important;
+    }
+    .cal-payout-badge > div:last-child {
+      font-size: 8px !important;
+    }
+    .dashboard-calendar .ant-picker-content th {
+      font-size: 10px !important;
+    }
+    .calendar-legend {
+      display: none !important;
+    }
+  }
+  @media (max-width: 480px) {
+    .dashboard-calendar .ant-picker-cell .ant-picker-cell-inner {
+      min-height: 32px !important;
+    }
+  }
 `;
 import {
   TeamOutlined,
@@ -361,18 +395,19 @@ const DashboardPage: React.FC = () => {
             Overview of your investment portfolio
           </Text>
         </div>
-        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+        <div className="dashboard-header-controls" style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
           <Select
             value={range}
             onChange={setRange}
             options={rangeOptions}
-            style={{ width: 200 }}
+            style={{ width: 200, minWidth: 140 }}
             size="middle"
           />
           {range === 'custom' && (
             <RangePicker
               onChange={(_, dateStrings) => setCustomDates(dateStrings as [string, string])}
               size="middle"
+              style={{ maxWidth: '100%' }}
             />
           )}
         </div>
@@ -427,7 +462,7 @@ const DashboardPage: React.FC = () => {
                   </div>
                 </div>
                 {/* Legend inline */}
-                <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+                <div className="calendar-legend" style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
                   {[
                     { color: '#2563eb', label: 'Pending' },
                     { color: '#dc2626', label: 'Overdue' },

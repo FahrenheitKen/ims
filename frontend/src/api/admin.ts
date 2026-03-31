@@ -18,6 +18,7 @@ export const getDashboard = (range: string, startDate?: string, endDate?: string
   apiClient.get<DashboardData>('/admin/dashboard', { params: { range, start_date: startDate, end_date: endDate } });
 export const getDashboardCalendar = (month?: string) =>
   apiClient.get('/admin/dashboard/calendar', { params: month ? { month } : {} });
+export const getAdminNotifications = () => apiClient.get('/admin/notifications');
 
 // Investors
 export const getInvestors = (params: Record<string, unknown>) =>
@@ -96,6 +97,31 @@ export const createContract = (investorId: number, data: { amount: number; start
 export const renewContract = (investorId: number) =>
   apiClient.post(`/admin/investors/${investorId}/renew`);
 
+// Topup Requests
+export const getTopupRequests = (params?: Record<string, unknown>) =>
+  apiClient.get('/admin/topup-requests', { params });
+export const approveTopupRequest = (id: number, data?: { admin_note?: string }) =>
+  apiClient.patch(`/admin/topup-requests/${id}/approve`, data ?? {});
+export const rejectTopupRequest = (id: number, data?: { admin_note?: string }) =>
+  apiClient.patch(`/admin/topup-requests/${id}/reject`, data ?? {});
+
+// New Contract Requests
+export const getNewContractRequests = (params?: Record<string, unknown>) =>
+  apiClient.get('/admin/new-contract-requests', { params });
+export const approveNewContractRequest = (id: number, data?: { admin_note?: string }) =>
+  apiClient.patch(`/admin/new-contract-requests/${id}/approve`, data ?? {});
+export const rejectNewContractRequest = (id: number, data?: { admin_note?: string }) =>
+  apiClient.patch(`/admin/new-contract-requests/${id}/reject`, data ?? {});
+
+// Investment Packages
+export const getInvestmentPackages = () => apiClient.get('/admin/investment-packages');
+export const createInvestmentPackage = (data: Record<string, unknown>) =>
+  apiClient.post('/admin/investment-packages', data);
+export const updateInvestmentPackage = (id: number, data: Record<string, unknown>) =>
+  apiClient.put(`/admin/investment-packages/${id}`, data);
+export const deleteInvestmentPackage = (id: number) =>
+  apiClient.delete(`/admin/investment-packages/${id}`);
+
 // Reports
 export const getMonthlyPayoutReport = (month: number, year: number) =>
   apiClient.get('/admin/reports/monthly-payout', { params: { month, year } });
@@ -108,3 +134,5 @@ export const updateSettings = (data: FormData) =>
   apiClient.post('/admin/settings', data, {
     headers: { 'Content-Type': 'multipart/form-data' },
   });
+export const updateCommissionSettings = (commissionRate: number) =>
+  apiClient.post('/admin/settings/commission', { commission_rate: commissionRate });

@@ -3,6 +3,8 @@
 namespace App\Http\Controllers\Api\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\ContractTopupRequest;
+use App\Models\NewContractRequest;
 use App\Models\Investor;
 use App\Models\Payment;
 use App\Models\PayoutSchedule;
@@ -99,6 +101,75 @@ class DashboardController extends Controller
         ksort($grouped);
 
         return response()->json($grouped);
+    }
+
+    public function notifications(): JsonResponse
+    {
+        $items = [];
+
+        // Individual pending investor registrations
+        Investor::where('status', 'pending')
+            ->select('id', 'prefix', 'first_name', 'second_name', 'last_name', 'created_at')
+            ->orderByDesc('created_at')
+            ->limit(20)
+            ->get()
+            ->each(function (Investor $inv) use (&$items) {
+                $parts = array_filter([$inv->prefix, $inv->first_name, $inv->second_name, $inv->last_name]);
+                $items[] = [
+                    'type'        => 'investor_pending',
+                    'id'          => $inv->id,
+                    'investor_id' => $inv->id,
+                    'label'       => 'Pending registration: ' . implode(' ', $parts),
+                    'sub_label'   => 'Registered ' . $inv->created_at->diffForHumans(),
+                ];
+            });
+
+        // Individual pending top-up requests
+        ContractTopupRequest::where('status', 'pending')
+            ->with(['investor:id,prefix,first_name,second_name,last_name', 'contract:id,contract_id'])
+            ->orderByDesc('created_at')
+            ->limit(20)
+            ->get()
+            ->each(function (ContractTopupRequest $req) use (&$items) {
+                $inv = $req->investor;
+                $parts = array_filter([$inv?->prefix, $inv?->first_name, $inv?->second_name, $inv?->last_name]);
+                $name = $parts ? implode(' ', $parts) : 'Unknown';
+                $amount = 'KES ' . number_format((float) $req->amount, 0);
+                $contract = $req->contract?->contract_id ?? '';
+                $items[] = [
+                    'type'        => 'topup_pending',
+                    'id'          => $req->id,
+                    'investor_id' => $req->investor_id,
+                    'label'       => "Top-up request from {$name}",
+                    'sub_label'   => $amount . ($contract ? " · {$contract}" : ''),
+                ];
+            });
+
+        // Individual pending new contract requests
+        NewContractRequest::where('status', 'pending')
+            ->with('investor:id,prefix,first_name,second_name,last_name')
+            ->orderByDesc('created_at')
+            ->limit(20)
+            ->get()
+            ->each(function (NewContractRequest $req) use (&$items) {
+                $inv = $req->investor;
+                $parts = array_filter([$inv?->prefix, $inv?->first_name, $inv?->second_name, $inv?->last_name]);
+                $name = $parts ? implode(' ', $parts) : 'Unknown';
+                $amount = 'KES ' . number_format((float) $req->amount, 0);
+                $items[] = [
+                    'type'        => 'new_contract_pending',
+                    'id'          => $req->id,
+                    'investor_id' => $req->investor_id,
+                    'label'       => "New contract request from {$name}",
+                    'sub_label'   => $amount,
+                ];
+            });
+
+        // Sort by most recent first (already ordered per type; merge keeps insertion order)
+        return response()->json([
+            'total' => count($items),
+            'items' => $items,
+        ]);
     }
 
     private function getDateRange(string $range, ?string $customStart, ?string $customEnd): array

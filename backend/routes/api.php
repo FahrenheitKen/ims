@@ -2,10 +2,12 @@
 
 use App\Http\Controllers\Api\Admin;
 use App\Http\Controllers\Api\Investor;
+// Admin sub-controllers imported via namespace
 use Illuminate\Support\Facades\Route;
 
 // Public settings (needed by login pages and landing page)
 Route::get('/settings', [Admin\SettingsController::class, 'index']);
+Route::get('/investment-packages', [Admin\InvestmentPackageController::class, 'publicIndex']);
 
 // Admin Auth (public)
 Route::post('/admin/login', [Admin\AuthController::class, 'login']);
@@ -26,6 +28,7 @@ Route::prefix('admin')->middleware(['auth:sanctum', 'admin'])->group(function ()
     // Dashboard
     Route::get('/dashboard', [Admin\DashboardController::class, 'index']);
     Route::get('/dashboard/calendar', [Admin\DashboardController::class, 'calendar']);
+    Route::get('/notifications', [Admin\DashboardController::class, 'notifications']);
 
     // Investors
     Route::get('/investors', [Admin\InvestorController::class, 'index']);
@@ -71,6 +74,16 @@ Route::prefix('admin')->middleware(['auth:sanctum', 'admin'])->group(function ()
     Route::post('/investors/{investor}/contracts', [Admin\ContractController::class, 'store']);
     Route::post('/investors/{investor}/renew', [Admin\ContractController::class, 'renew']);
 
+    // Topup Requests
+    Route::get('/topup-requests', [Admin\TopupRequestController::class, 'index']);
+    Route::patch('/topup-requests/{topupRequest}/approve', [Admin\TopupRequestController::class, 'approve']);
+    Route::patch('/topup-requests/{topupRequest}/reject', [Admin\TopupRequestController::class, 'reject']);
+
+    // New Contract Requests
+    Route::get('/new-contract-requests', [Admin\NewContractRequestController::class, 'index']);
+    Route::patch('/new-contract-requests/{newContractRequest}/approve', [Admin\NewContractRequestController::class, 'approve']);
+    Route::patch('/new-contract-requests/{newContractRequest}/reject', [Admin\NewContractRequestController::class, 'reject']);
+
     // Reports
     Route::get('/reports/monthly-payout', [Admin\ReportController::class, 'monthlyPayout']);
     Route::get('/reports/overdue', [Admin\ReportController::class, 'overdue']);
@@ -78,6 +91,13 @@ Route::prefix('admin')->middleware(['auth:sanctum', 'admin'])->group(function ()
     // Settings
     Route::get('/settings', [Admin\SettingsController::class, 'index']);
     Route::post('/settings', [Admin\SettingsController::class, 'update']);
+    Route::post('/settings/commission', [Admin\SettingsController::class, 'updateCommission']);
+
+    // Investment Packages
+    Route::get('/investment-packages', [Admin\InvestmentPackageController::class, 'index']);
+    Route::post('/investment-packages', [Admin\InvestmentPackageController::class, 'store']);
+    Route::put('/investment-packages/{package}', [Admin\InvestmentPackageController::class, 'update']);
+    Route::delete('/investment-packages/{package}', [Admin\InvestmentPackageController::class, 'destroy']);
 });
 
 // Investor Portal Routes (protected)
@@ -96,4 +116,8 @@ Route::prefix('investor')->middleware(['auth:investor'])->group(function () {
 
     Route::get('/contracts', [Investor\ContractController::class, 'index']);
     Route::get('/contracts/{id}', [Investor\ContractController::class, 'show']);
+    Route::post('/contracts/{id}/topup-request', [Investor\ContractController::class, 'topupRequest']);
+    Route::get('/topup-requests', [Investor\ContractController::class, 'myTopupRequests']);
+    Route::post('/new-contract-request', [Investor\ContractController::class, 'newContractRequest']);
+    Route::get('/new-contract-requests', [Investor\ContractController::class, 'myNewContractRequests']);
 });

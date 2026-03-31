@@ -42,7 +42,7 @@ export interface Investor {
 export interface InvestmentTransaction {
   id: number;
   investor_id: number;
-  type: 'initial' | 'topup' | 'principal_refund';
+  type: 'initial' | 'topup';
   amount: number;
   date: string;
   note: string | null;
@@ -114,6 +114,39 @@ export interface Contract {
   investor?: Investor;
   payout_schedules?: PayoutSchedule[];
   investment_transactions?: InvestmentTransaction[];
+}
+
+export interface ContractTopupRequest {
+  id: number;
+  investor_id: number;
+  contract_id: number;
+  amount: number;
+  note: string | null;
+  status: 'pending' | 'approved' | 'rejected';
+  admin_note: string | null;
+  reviewed_by: number | null;
+  reviewed_at: string | null;
+  created_at: string;
+  updated_at: string;
+  contract?: Contract;
+  investor?: Investor;
+  reviewer?: { id: number; name: string };
+}
+
+export interface NewContractRequest {
+  id: number;
+  investor_id: number;
+  amount: number;
+  proposed_start_date: string | null;
+  note: string | null;
+  status: 'pending' | 'approved' | 'rejected';
+  admin_note: string | null;
+  reviewed_by: number | null;
+  reviewed_at: string | null;
+  created_at: string;
+  updated_at: string;
+  investor?: Investor;
+  reviewer?: { id: number; name: string };
 }
 
 export interface DashboardData {

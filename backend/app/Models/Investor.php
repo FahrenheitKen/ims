@@ -39,9 +39,9 @@ class Investor extends Authenticatable
     protected function casts(): array
     {
         return [
-            'total_invested' => 'decimal:2',
+            'total_invested' => 'decimal:0',
             'interest_rate' => 'decimal:4',
-            'monthly_payout' => 'decimal:2',
+            'monthly_payout' => 'decimal:0',
             'start_date' => 'date',
             'end_date' => 'date',
             'password' => 'hashed',

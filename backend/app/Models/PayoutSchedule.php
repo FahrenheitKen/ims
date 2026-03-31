@@ -14,8 +14,8 @@ class PayoutSchedule extends Model
     {
         return [
             'due_date' => 'date',
-            'expected_amount' => 'decimal:2',
-            'paid_amount' => 'decimal:2',
+            'expected_amount' => 'decimal:0',
+            'paid_amount' => 'decimal:0',
         ];
     }
 

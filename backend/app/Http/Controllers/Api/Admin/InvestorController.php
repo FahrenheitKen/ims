@@ -212,10 +212,11 @@ class InvestorController extends Controller
         if ($referral) {
             $referral->update(['status' => 'approved']);
 
-            // Commission = 1% of the referred investor's total payout (monthly_payout * 12)
+            // Commission = configurable % of the referred investor's total payout (monthly_payout * 12)
             $investor->refresh();
             $totalPayout = (float) $investor->monthly_payout * 12;
-            $commissionAmount = round($totalPayout * 0.01, 2);
+            $commissionRate = (float) \App\Models\Setting::get('commission_rate', '1') / 100;
+            $commissionAmount = round($totalPayout * $commissionRate);
 
             if ($commissionAmount > 0) {
                 // Payment date = same day next month as the referred investor's first payout

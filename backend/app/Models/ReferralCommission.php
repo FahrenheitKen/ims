@@ -17,7 +17,7 @@ class ReferralCommission extends Model
     ];
 
     protected $casts = [
-        'commission_amount' => 'decimal:2',
+        'commission_amount' => 'decimal:0',
         'payment_date' => 'date',
     ];
 

@@ -390,9 +390,19 @@ const InvestorLoginPage: React.FC = () => {
       </Modal>
 
       <style>{`
+        @media (max-width: 900px) {
+          .login-branding { flex: 0 0 40% !important; padding: 40px 24px !important; }
+        }
         @media (max-width: 768px) {
           .login-branding { display: none !important; }
           .login-container > div:nth-child(2) { padding: 24px 16px !important; }
+        }
+        @media (max-width: 480px) {
+          .login-container > div:nth-child(2) { padding: 16px 12px !important; }
+        }
+        @media (max-width: 360px) {
+          .login-container > div:nth-child(2) { padding: 12px 8px !important; }
+          .login-container h3.ant-typography { font-size: 18px !important; }
         }
       `}</style>
     </div>

@@ -66,10 +66,10 @@ class PayoutService
             $newPaidAmount = (float) $schedule->paid_amount + $allocateAmount;
             $schedule->paid_amount = $newPaidAmount;
 
-            if ($newPaidAmount >= (float) $schedule->expected_amount) {
-                $isPastDue = $schedule->due_date->isPast();
-                $isFuture = $schedule->due_date->isFuture();
-                $schedule->status = $isFuture ? 'paid_in_advance' : 'paid';
+            $expectedAmount = (float) $schedule->expected_amount;
+            if ($newPaidAmount >= $expectedAmount || abs($newPaidAmount - $expectedAmount) < 0.01) {
+                $schedule->status = $schedule->due_date->isFuture() ? 'paid_in_advance' : 'paid';
+                $schedule->paid_amount = $expectedAmount;
             } else {
                 $schedule->status = 'partially_paid';
             }

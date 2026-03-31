@@ -1,5 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Button, InputNumber, Typography, Segmented, Drawer, message } from 'antd';
+import { Button, InputNumber, Typography, Segmented, Drawer, message, Spin, Collapse } from 'antd';
+import { useQuery } from '@tanstack/react-query';
+import { getPublicInvestmentPackages } from '../api/investor';
 import {
   ArrowRightOutlined,
   CalculatorOutlined,
@@ -19,41 +21,19 @@ import {
   StarFilled,
   UserOutlined,
   MenuOutlined,
+  QuestionCircleOutlined,
 } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import { useSettings } from '../contexts/SettingsContext';
 
 const { Title, Text, Paragraph } = Typography;
 
-const plans = [
-  {
-    tier: 'Starter',
-    range: 'KES 50,000 - 149,999',
-    rate: '17.5%',
-    rateDecimal: 0.175,
-    color: '#0d9488',
-    bg: '#f0fdfa',
-    features: ['Monthly interest payouts', '12-month contract', 'Investor portal access', 'Email notifications'],
-  },
-  {
-    tier: 'Growth',
-    range: 'KES 150,000 - 499,999',
-    rate: '23.08%',
-    rateDecimal: 0.2308,
-    color: '#6366f1',
-    bg: '#eef2ff',
-    popular: true,
-    features: ['Monthly interest payouts', '12-month contract', 'Investor portal access', 'Priority support', 'Email notifications'],
-  },
-  {
-    tier: 'Premium',
-    range: 'KES 500,000+',
-    rate: '25%',
-    rateDecimal: 0.25,
-    color: '#b45309',
-    bg: '#fffbeb',
-    features: ['Monthly interest payouts', '12-month contract', 'Investor portal access', 'Dedicated account manager', 'Priority support', 'Negotiable rates'],
-  },
+const PLAN_PALETTE = [
+  { color: '#0d9488', bg: '#f0fdfa' },
+  { color: '#6366f1', bg: '#eef2ff' },
+  { color: '#b45309', bg: '#fffbeb' },
+  { color: '#059669', bg: '#ecfdf5' },
+  { color: '#7c3aed', bg: '#f5f3ff' },
 ];
 
 const formatKES = (n: number) => 'KES ' + n.toLocaleString('en-KE', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
@@ -65,40 +45,134 @@ interface TickerItem {
   decimals: number;
 }
 
-const INITIAL_TICKERS: TickerItem[] = [
+// Forex pairs fetched from ExchangeRate API
+const FOREX_CONFIG = [
+  { symbol: 'XAU/USD', key: 'XAU', decimals: 2 },
+  { symbol: 'GBP/USD', key: 'GBP', decimals: 4 },
+  { symbol: 'USD/JPY', key: 'JPY', decimals: 2, invert: true },
+  { symbol: 'EUR/USD', key: 'EUR', decimals: 4 },
+  { symbol: 'XAG/USD', key: 'XAG', decimals: 2 },
+  { symbol: 'USD/CAD', key: 'CAD', decimals: 4, invert: true },
+  { symbol: 'USD/CHF', key: 'CHF', decimals: 4, invert: true },
+  { symbol: 'USD/KES', key: 'KES', decimals: 2, invert: true },
+  { symbol: 'AUD/USD', key: 'AUD', decimals: 4 },
+  { symbol: 'NZD/USD', key: 'NZD', decimals: 4 },
+  { symbol: 'USD/ZAR', key: 'ZAR', decimals: 4, invert: true },
+];
+
+// Crypto fetched from CoinGecko API
+const CRYPTO_CONFIG = [
+  { symbol: 'BTC/USD', id: 'bitcoin', decimals: 0 },
+  { symbol: 'ETH/USD', id: 'ethereum', decimals: 0 },
+];
+
+// Indices & oil - simulated (no free browser API available)
+const MARKET_SIMULATED = [
+  { symbol: 'NAS100', basePrice: 21458, decimals: 0 },
+  { symbol: 'SPX500', basePrice: 5728, decimals: 0 },
+  { symbol: 'WTI OIL', basePrice: 71.32, decimals: 2 },
+];
+
+const FALLBACK_TICKERS: TickerItem[] = [
   { symbol: 'XAU/USD', price: 3023.40, change: 0.42, decimals: 2 },
   { symbol: 'GBP/USD', price: 1.2948, change: -0.18, decimals: 4 },
   { symbol: 'USD/JPY', price: 149.87, change: 0.23, decimals: 2 },
-  { symbol: 'BTC/USD', price: 87420, change: 1.45, decimals: 0 },
   { symbol: 'EUR/USD', price: 1.0825, change: -0.09, decimals: 4 },
   { symbol: 'XAG/USD', price: 33.48, change: 0.67, decimals: 2 },
   { symbol: 'USD/CAD', price: 1.3821, change: 0.11, decimals: 4 },
-  { symbol: 'WTI OIL', price: 71.32, change: -0.35, decimals: 2 },
-  { symbol: 'ETH/USD', price: 2045, change: 0.92, decimals: 0 },
-  { symbol: 'NAS100',  price: 21458, change: 0.88, decimals: 0 },
-  { symbol: 'SPX500',  price: 5728,  change: 0.54, decimals: 0 },
   { symbol: 'USD/CHF', price: 0.9012, change: -0.06, decimals: 4 },
+  { symbol: 'USD/KES', price: 129.50, change: 0.12, decimals: 2 },
+  { symbol: 'AUD/USD', price: 0.6534, change: 0.15, decimals: 4 },
+  { symbol: 'NZD/USD', price: 0.5982, change: -0.22, decimals: 4 },
+  { symbol: 'USD/ZAR', price: 18.12, change: -0.31, decimals: 4 },
+  { symbol: 'BTC/USD', price: 87420, change: 1.45, decimals: 0 },
+  { symbol: 'ETH/USD', price: 2045, change: 0.92, decimals: 0 },
+  { symbol: 'NAS100', price: 21458, change: 0.88, decimals: 0 },
+  { symbol: 'SPX500', price: 5728, change: 0.54, decimals: 0 },
+  { symbol: 'WTI OIL', price: 71.32, change: -0.35, decimals: 2 },
 ];
 
 const MarketTicker: React.FC = () => {
-  const [tickers, setTickers] = useState<TickerItem[]>(INITIAL_TICKERS);
+  const [tickers, setTickers] = useState<TickerItem[]>(FALLBACK_TICKERS);
+  const prevPricesRef = React.useRef<Record<string, number>>({});
+
+  const fetchAllRates = useCallback(async () => {
+    const prevPrices = prevPricesRef.current;
+    const results: TickerItem[] = [];
+
+    // 1. Forex & metals from ExchangeRate API
+    try {
+      const res = await fetch('https://open.er-api.com/v6/latest/USD');
+      const data = await res.json();
+      if (data.result === 'success') {
+        const rates = data.rates;
+        FOREX_CONFIG.forEach(cfg => {
+          const rate = rates[cfg.key];
+          if (!rate) return;
+          const price = cfg.invert ? rate : (1 / rate);
+          const prev = prevPrices[cfg.symbol];
+          const change = prev ? ((price - prev) / prev) * 100 : 0;
+          prevPrices[cfg.symbol] = price;
+          results.push({ symbol: cfg.symbol, price, change: parseFloat(change.toFixed(2)), decimals: cfg.decimals });
+        });
+      }
+    } catch { /* keep fallbacks */ }
+
+    // 2. Crypto from CoinGecko
+    try {
+      const ids = CRYPTO_CONFIG.map(c => c.id).join(',');
+      const res = await fetch(`https://api.coingecko.com/api/v3/simple/price?ids=${ids}&vs_currencies=usd&include_24hr_change=true`);
+      const data = await res.json();
+      CRYPTO_CONFIG.forEach(cfg => {
+        const coin = data[cfg.id];
+        if (!coin) return;
+        const price = coin.usd;
+        const change = coin.usd_24h_change ? parseFloat(coin.usd_24h_change.toFixed(2)) : 0;
+        prevPrices[cfg.symbol] = price;
+        results.push({ symbol: cfg.symbol, price, change, decimals: cfg.decimals });
+      });
+    } catch { /* keep fallbacks */ }
+
+    // 3. Indices & oil - simulated with small drift
+    MARKET_SIMULATED.forEach(cfg => {
+      const prev = prevPrices[cfg.symbol] || cfg.basePrice;
+      const drift = (Math.random() - 0.48) * 0.002 * prev; // slight upward bias
+      const price = prev + drift;
+      const change = ((price - cfg.basePrice) / cfg.basePrice) * 100;
+      prevPrices[cfg.symbol] = price;
+      results.push({ symbol: cfg.symbol, price, change: parseFloat(change.toFixed(2)), decimals: cfg.decimals });
+    });
+
+    prevPricesRef.current = prevPrices;
+
+    // Merge: use fetched data where available, fall back to existing
+    if (results.length > 0) {
+      setTickers(prev => {
+        const map = new Map(results.map(r => [r.symbol, r]));
+        const merged = prev.map(t => map.get(t.symbol) || t);
+        // Add any new items not in prev
+        results.forEach(r => { if (!prev.find(t => t.symbol === r.symbol)) merged.push(r); });
+        return merged;
+      });
+    }
+  }, []);
 
   useEffect(() => {
-    const id = setInterval(() => {
-      setTickers(prev =>
-        prev.map(t => {
-          const delta = (Math.random() - 0.5) * 0.0015 * t.price;
-          const changeDelta = (Math.random() - 0.5) * 0.04;
-          return {
-            ...t,
-            price: Math.max(0, t.price + delta),
-            change: parseFloat((t.change + changeDelta).toFixed(2)),
-          };
-        })
-      );
-    }, 2000);
-    return () => clearInterval(id);
-  }, []);
+    fetchAllRates();
+    // Forex/crypto refresh every 60s, indices drift every 10s
+    const mainId = setInterval(fetchAllRates, 60000);
+    const simId = setInterval(() => {
+      setTickers(prev => prev.map(t => {
+        const sim = MARKET_SIMULATED.find(m => m.symbol === t.symbol);
+        if (!sim) return t;
+        const drift = (Math.random() - 0.48) * 0.002 * t.price;
+        const price = t.price + drift;
+        const change = ((price - sim.basePrice) / sim.basePrice) * 100;
+        return { ...t, price, change: parseFloat(change.toFixed(2)) };
+      }));
+    }, 10000);
+    return () => { clearInterval(mainId); clearInterval(simId); };
+  }, [fetchAllRates]);
 
   const items = [...tickers, ...tickers]; // duplicate for seamless loop
 
@@ -146,17 +220,57 @@ const LandingPage: React.FC = () => {
   const [calcPeriod, setCalcPeriod] = useState<string>('12');
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
+  const { data: rawPackages, isLoading: packagesLoading } = useQuery({
+    queryKey: ['public-investment-packages'],
+    queryFn: () => getPublicInvestmentPackages().then(r => r.data),
+    staleTime: 5 * 60 * 1000,
+  });
+
+  const activePackages: Array<{
+    id: number; name: string; min_amount: number; max_amount: number | null;
+    interest_rate: number; features: string[]; is_active: boolean; sort_order: number;
+  }> = Array.isArray(rawPackages)
+    ? rawPackages.filter((p: any) => p.is_active).sort((a: any, b: any) => a.sort_order - b.sort_order)
+    : [];
+
+  const plans = activePackages.map((pkg, i) => {
+    const palette = PLAN_PALETTE[i % PLAN_PALETTE.length];
+    const rateDecimal = Number(pkg.interest_rate);
+    const rateDisplay = (rateDecimal * 100).toFixed(2).replace(/\.?0+$/, '') + '%';
+    const minFmt = `KES ${Number(pkg.min_amount).toLocaleString('en-KE')}`;
+    const maxFmt = pkg.max_amount != null ? ` - KES ${Number(pkg.max_amount).toLocaleString('en-KE')}` : '+';
+    return {
+      tier: pkg.name,
+      range: minFmt + maxFmt,
+      rate: rateDisplay,
+      rateDecimal,
+      color: palette.color,
+      bg: palette.bg,
+      popular: i === 1 && activePackages.length > 1,
+      features: Array.isArray(pkg.features) ? pkg.features : [],
+    };
+  });
+
   const getRate = (amount: number) => {
+    if (activePackages.length > 0) {
+      const sorted = [...activePackages].sort((a, b) => b.min_amount - a.min_amount);
+      const match = sorted.find(p => amount >= p.min_amount && (p.max_amount == null || amount <= p.max_amount));
+      if (match) return Number(match.interest_rate);
+      return 0;
+    }
+    // fallback while packages load
     if (amount >= 500000) return 0.25;
     if (amount >= 150000) return 0.2308;
-    return 0.175;
+    if (amount >= 50000) return 0.175;
+    return 0;
   };
 
   const rate = getRate(calcAmount);
-  const monthlyPayout = calcAmount * rate;
   const months = parseInt(calcPeriod);
-  const totalReturns = monthlyPayout * months;
-  const totalValue = calcAmount + totalReturns;
+  const totalInterest = calcAmount * rate * months;
+  const monthlyPayout = calcAmount > 0 ? (calcAmount + totalInterest) / months : 0;
+  const totalReturns = totalInterest;
+  const totalValue = monthlyPayout * months;
 
   // Testimonials carousel
   const testimonials = [
@@ -302,7 +416,7 @@ const LandingPage: React.FC = () => {
             Investment
           </Title>
           <Paragraph className="hero-subtitle" style={{ color: 'rgba(255,255,255,0.85)' }}>
-            Earn up to <strong style={{ color: '#fff' }}>25% monthly returns</strong> on your investment.
+            Earn up to <strong style={{ color: '#fff' }}>22% monthly returns</strong> on your investment.
             Transparent, secure, and professionally managed investment plans designed for consistent growth.
           </Paragraph>
           <div className="hero-buttons">
@@ -457,8 +571,13 @@ const LandingPage: React.FC = () => {
             </Paragraph>
           </div>
 
+          {packagesLoading && (
+            <div style={{ textAlign: 'center', padding: '40px 0' }}>
+              <Spin size="large" />
+            </div>
+          )}
           <div className="plans-grid">
-            {plans.map((plan) => (
+            {!packagesLoading && plans.map((plan) => (
               <div
                 key={plan.tier}
                 style={{
@@ -668,7 +787,7 @@ const LandingPage: React.FC = () => {
           <div className="whyus-grid">
             {[
               { icon: <SafetyCertificateOutlined />, title: 'Secure', desc: 'Your investment is safeguarded with robust financial protocols.' },
-              { icon: <RiseOutlined />, title: 'High Returns', desc: 'Earn competitive monthly interest rates of up to 25%.' },
+              { icon: <RiseOutlined />, title: 'High Returns', desc: 'Earn competitive monthly interest rates of up to 22%.' },
               { icon: <BankOutlined />, title: 'Transparent', desc: 'Track every payout through your personal investor portal.' },
               { icon: <TeamOutlined />, title: 'Dedicated Support', desc: 'Get personalized support from our investment team.' },
             ].map((item, i) => (
@@ -850,6 +969,116 @@ const LandingPage: React.FC = () => {
         </div>
       </section>
 
+      {/* FAQ Section */}
+      <section style={{ padding: '80px 40px', background: '#f8fafc' }}>
+        <div style={{ maxWidth: 800, margin: '0 auto' }}>
+          <div style={{ textAlign: 'center', marginBottom: 48 }}>
+            <div style={{
+              width: 56, height: 56, borderRadius: 16, background: '#eff6ff',
+              display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+              marginBottom: 16, color: '#2563eb', fontSize: 24,
+            }}>
+              <QuestionCircleOutlined />
+            </div>
+            <Title level={2} style={{ margin: '0 0 8px', fontWeight: 700, color: '#1a1a2e' }}>
+              Frequently Asked Questions
+            </Title>
+            <Text style={{ color: '#64748b', fontSize: 16 }}>
+              Everything you need to know about investing with us
+            </Text>
+          </div>
+          <Collapse
+            accordion
+            size="large"
+            expandIconPosition="end"
+            style={{ background: '#fff', borderRadius: 12, border: '1px solid #e2e8f0' }}
+            items={[
+              {
+                key: '0',
+                label: <Text strong style={{ fontSize: 15 }}>What does Zig Capital do?</Text>,
+                children: (
+                  <Text style={{ color: '#475569', lineHeight: 1.8 }}>
+                    Zig Capital Investment Ltd specialises in trading across forex, commodities, and financial markets. We pool investor funds and deploy them through professionally managed trading strategies to generate consistent returns. Our experienced trading team leverages market analysis, risk management, and diversified positions to deliver monthly payouts to our investors.
+                  </Text>
+                ),
+              },
+              {
+                key: '1',
+                label: <Text strong style={{ fontSize: 15 }}>What is the minimum investment amount?</Text>,
+                children: (
+                  <Text style={{ color: '#475569', lineHeight: 1.8 }}>
+                    The minimum investment amount is KES 50,000. We offer different investment tiers — the higher your investment, the better your monthly interest rate. You can view all available packages on our investment plans section above. You also have the option to top up your investment at any time to move into a higher tier and earn better returns.
+                  </Text>
+                ),
+              },
+              {
+                key: '2',
+                label: <Text strong style={{ fontSize: 15 }}>How do I receive my monthly payouts?</Text>,
+                children: (
+                  <Text style={{ color: '#475569', lineHeight: 1.8 }}>
+                    During registration, you choose your preferred payout method — either M-Pesa or bank transfer. Monthly interest payouts are processed according to your contract schedule and sent directly to your chosen method.
+                  </Text>
+                ),
+              },
+              {
+                key: '3',
+                label: <Text strong style={{ fontSize: 15 }}>How long is the investment contract?</Text>,
+                children: (
+                  <Text style={{ color: '#475569', lineHeight: 1.8 }}>
+                    Our standard investment contracts run for 12 months from the date your account is approved. You receive monthly interest payouts throughout the contract period, and your principal is returned at the end of the term.
+                  </Text>
+                ),
+              },
+              {
+                key: '4',
+                label: <Text strong style={{ fontSize: 15 }}>How do I get started?</Text>,
+                children: (
+                  <Text style={{ color: '#475569', lineHeight: 1.8 }}>
+                    Simply click "Start Investing" to register. Fill in your personal details, banking information, and investment amount. After submitting, send your funds via M-Pesa Paybill. Our team will review your application and activate your account, after which you'll receive your login credentials via email.
+                  </Text>
+                ),
+              },
+              {
+                key: '5',
+                label: <Text strong style={{ fontSize: 15 }}>Can I withdraw my investment early?</Text>,
+                children: (
+                  <Text style={{ color: '#475569', lineHeight: 1.8 }}>
+                    Early withdrawal before the contract period ends may be subject to penalties and processing fees. We recommend investing amounts you can commit for the full 12-month term. Contact our support team for specific early withdrawal terms.
+                  </Text>
+                ),
+              },
+              {
+                key: '6',
+                label: <Text strong style={{ fontSize: 15 }}>How does the referral program work?</Text>,
+                children: (
+                  <Text style={{ color: '#475569', lineHeight: 1.8 }}>
+                    Every approved investor receives a unique referral code. When someone registers using your code and gets approved, you earn a commission based on their total annual payout. You can track your referrals and earnings directly from your investor dashboard.
+                  </Text>
+                ),
+              },
+              {
+                key: '7',
+                label: <Text strong style={{ fontSize: 15 }}>Is my investment secure?</Text>,
+                children: (
+                  <Text style={{ color: '#475569', lineHeight: 1.8 }}>
+                    We employ rigorous risk management strategies and maintain full transparency with our investors. All accounts are reviewed and verified by our team before activation. You can monitor your investment, payouts, and contract status in real-time through your secure investor portal.
+                  </Text>
+                ),
+              },
+              {
+                key: '8',
+                label: <Text strong style={{ fontSize: 15 }}>How long does account approval take?</Text>,
+                children: (
+                  <Text style={{ color: '#475569', lineHeight: 1.8 }}>
+                    Account approval typically takes 1–3 business days after we verify your payment. Once approved, you'll receive an email with your login credentials to access the investor portal.
+                  </Text>
+                ),
+              },
+            ]}
+          />
+        </div>
+      </section>
+
       {/* Contact Section */}
       <section id="contact" style={{ padding: '80px 40px', background: '#fff' }}>
         <div style={{ maxWidth: 900, margin: '0 auto' }}>
@@ -996,6 +1225,8 @@ const LandingPage: React.FC = () => {
 
         @media (max-width: 1024px) {
           .whyus-grid { grid-template-columns: repeat(2, 1fr); }
+          .plans-grid { grid-template-columns: repeat(2, 1fr); gap: 16px; }
+          .contact-grid { grid-template-columns: repeat(2, 1fr); }
         }
 
         @media (max-width: 768px) {
@@ -1004,9 +1235,9 @@ const LandingPage: React.FC = () => {
           .mobile-menu-btn { display: inline-flex !important; }
 
           section { padding: 50px 16px !important; }
-          .hero-section { padding-top: 120px !important; }
+          .hero-section { padding-top: 110px !important; }
 
-          .hero-title { font-size: 32px !important; }
+          .hero-title { font-size: 30px !important; }
           .hero-subtitle { font-size: 15px !important; }
           .hero-buttons { flex-direction: column; align-items: center; }
           .hero-buttons .ant-btn { width: 100%; max-width: 300px; }
@@ -1015,7 +1246,7 @@ const LandingPage: React.FC = () => {
           .about-grid { grid-template-columns: 1fr !important; gap: 32px; }
           .plans-grid { grid-template-columns: 1fr !important; }
           .calc-grid { grid-template-columns: 1fr !important; gap: 24px; }
-          .whyus-grid { grid-template-columns: 1fr !important; }
+          .whyus-grid { grid-template-columns: repeat(2, 1fr) !important; }
           .contact-grid { grid-template-columns: 1fr !important; }
 
           .testimonial-nav-btn { width: 32px !important; height: 32px !important; }
@@ -1025,11 +1256,27 @@ const LandingPage: React.FC = () => {
           footer { padding: 24px 16px !important; }
         }
 
+        @media (max-width: 576px) {
+          .hero-section { padding-top: 100px !important; }
+          .hero-title { font-size: 26px !important; line-height: 1.2 !important; }
+          .hero-subtitle { font-size: 14px !important; }
+          .whyus-grid { grid-template-columns: 1fr !important; }
+          section { padding: 40px 12px !important; }
+        }
+
         @media (max-width: 480px) {
-          .hero-title { font-size: 26px !important; }
+          .hero-title { font-size: 22px !important; }
           .trust-indicators { flex-direction: column; align-items: center; gap: 12px; }
           .testimonial-nav-prev { left: 2px !important; }
           .testimonial-nav-next { right: 2px !important; }
+        }
+        @media (max-width: 360px) {
+          .hero-title { font-size: 20px !important; }
+          .hero-subtitle { font-size: 13px !important; }
+          section { padding: 32px 8px !important; }
+          .hero-section { padding-top: 96px !important; min-height: auto !important; padding-bottom: 40px !important; }
+          .landing-nav { padding: 0 10px !important; height: 56px !important; }
+          footer { padding: 20px 8px !important; }
         }
       `}</style>
 
@@ -1060,7 +1307,7 @@ const LandingPage: React.FC = () => {
           onMouseLeave={e => { e.currentTarget.style.transform = 'scale(1)'; e.currentTarget.style.boxShadow = '0 4px 12px rgba(37,211,102,0.4)'; }}
         >
           <svg viewBox="0 0 24 24" width="32" height="32" fill="#fff">
-            <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
+            <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z" />
           </svg>
         </a>
       )}

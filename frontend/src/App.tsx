@@ -17,6 +17,7 @@ import InvestorDetailPage from './pages/admin/InvestorDetailPage';
 import ReportsPage from './pages/admin/ReportsPage';
 import ProfilePage from './pages/admin/ProfilePage';
 import SettingsPage from './pages/admin/SettingsPage';
+import InvestmentSettingsPage from './pages/admin/InvestmentSettingsPage';
 import ContractsPage from './pages/admin/ContractsPage';
 import ContractDetailPage from './pages/admin/ContractDetailPage';
 
@@ -67,6 +68,7 @@ const App: React.FC = () => {
                 <Route path="reports" element={<ReportsPage />} />
                 <Route path="profile" element={<ProfilePage />} />
                 <Route path="settings" element={<SettingsPage />} />
+                <Route path="settings/investment" element={<InvestmentSettingsPage />} />
               </Route>
 
               {/* Investor Routes */}
