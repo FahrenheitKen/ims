@@ -542,13 +542,13 @@ const RegisterPage: React.FC = () => {
           <p>By registering as an investor with Zig Capital Investment Ltd, you agree to enter into an investment contract for a period of 12 months from the date of account approval.</p>
 
           <p><strong>2. Returns and Payouts</strong></p>
-          <p>Monthly interest payouts are calculated based on your investment tier and are paid according to the agreed schedule. Returns are not guaranteed and are subject to market conditions, though we employ rigorous risk management strategies.</p>
+          <p>Monthly payouts consist of both your principal (capital) and interest combined. Your total investment plus the total interest earned over the 12-month contract period is divided into 12 equal monthly instalments. Each monthly payout therefore includes a portion of your principal and a portion of your interest, ensuring you receive your full capital back along with your returns by the end of the contract. Returns are not guaranteed and are subject to market conditions, though we employ rigorous risk management strategies.</p>
 
           <p><strong>3. Investment Amount</strong></p>
-          <p>The minimum investment amount is KES 50,000. Your investment tier and corresponding interest rate are determined by the total amount invested.</p>
+          <p>The minimum investment amount is KES 50,000. Your investment tier and corresponding interest rate are determined by the total amount invested. You may top up your investment at any time with a minimum top-up of KES 30,000, which will be added to your active contract and your monthly payouts will be recalculated accordingly.</p>
 
           <p><strong>4. Account Approval</strong></p>
-          <p>All investor accounts are subject to admin review and approval. Your account will be activated only after your funds have been verified and your registration has been approved.</p>
+          <p>All investor accounts are subject to review and approval. Your account will be activated only after your funds have been verified and your registration has been approved. Zig Capital Investment reserves the right of admission.</p>
 
           <p><strong>5. Password and Security</strong></p>
           <p>Upon approval, your login credentials will be sent to your registered email. You are required to change your password on first login. You are responsible for maintaining the confidentiality of your account credentials.</p>
